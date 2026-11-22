@@ -1,0 +1,29 @@
+name: frc_scouting_app
+description: Offline-first FRC scouting, strategy and lead analytics for Elysium 1937.
+publish_to: 'none'
+version: 2.1.0+4
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  supabase_flutter: ^2.8.0
+  sqflite: ^2.3.3
+  path: ^1.9.0
+  connectivity_plus: ^6.0.5
+  shared_preferences: ^2.3.2
+  uuid: ^4.5.1
+  fl_chart: ^0.69.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/competitions.json
+    - assets/images/

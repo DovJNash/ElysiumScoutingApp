@@ -1,0 +1,41 @@
+{
+  "competitions": [
+    { "id": "District 1", "name": "District 1", "teams": [
+        { "number": 1690, "name": "Orbit" },
+        { "number": 1574, "name": "MisCar" },
+        { "number": 3339, "name": "BumbleB" },
+        { "number": 5987, "name": "Galaxia" },
+        { "number": 2230, "name": "General Angels" } ] },
+    { "id": "District 2", "name": "District 2", "teams": [
+        { "number": 1937, "name": "Elysium" },
+        { "number": 3075, "name": "Ha-Dream Team" },
+        { "number": 4320, "name": "The Joker" },
+        { "number": 5654, "name": "Phoenix" },
+        { "number": 6738, "name": "Excalibur" } ] },
+    { "id": "District 3", "name": "District 3", "teams": [
+        { "number": 1577, "name": "Steampunk" },
+        { "number": 2096, "name": "RoboActive" },
+        { "number": 3211, "name": "The Y Team" },
+        { "number": 4590, "name": "GreenBlitz" },
+        { "number": 7039, "name": "XO" } ] },
+    { "id": "District 4", "name": "District 4", "teams": [
+        { "number": 1690, "name": "Orbit" },
+        { "number": 3316, "name": "D-Bug" },
+        { "number": 4744, "name": "Ninjas" },
+        { "number": 5951, "name": "Makers Assemble" },
+        { "number": 7112, "name": "EverGreen" } ] },
+    { "id": "District 5", "name": "District 5", "teams": [
+        { "number": 1574, "name": "MisCar" },
+        { "number": 2231, "name": "OnyxTronix" },
+        { "number": 4319, "name": "Ladies First" },
+        { "number": 5635, "name": "Demacia" },
+        { "number": 8175, "name": "MecaTech" } ] },
+    { "id": "DCMP", "name": "District Championship (DCMP)", "teams": [
+        { "number": 1690, "name": "Orbit" },
+        { "number": 1574, "name": "MisCar" },
+        { "number": 1577, "name": "Steampunk" },
+        { "number": 3339, "name": "BumbleB" },
+        { "number": 4590, "name": "GreenBlitz" },
+        { "number": 5987, "name": "Galaxia" } ] }
+  ]
+}

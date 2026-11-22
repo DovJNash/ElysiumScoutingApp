@@ -1,0 +1,20 @@
+# Builds the iOS app in the cloud (no Mac needed). Start it from GitHub:
+# Actions -> "Build iOS (no signing)" -> Run workflow.
+# This proves that the iOS project compiles. To get an installable IPA / TestFlight
+# build you additionally need an Apple Developer account and code signing
+# (see README, "iOS").
+name: Build iOS (no signing)
+on:
+  workflow_dispatch:
+jobs:
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart tool/setup_platforms.dart
+      - run: flutter build ios --release --no-codesign
