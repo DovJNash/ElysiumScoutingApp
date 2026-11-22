@@ -1,0 +1,74 @@
+# Codemagic build configuration for "Elysium 1937 Scouting App" (iOS).
+# Put this file in the ROOT of your GitHub repository (next to pubspec.yaml),
+# commit + push, then in Codemagic click "Check for configuration files".
+#
+# Two workflows:
+#   ios-testflight : SIGNED build, uploaded to TestFlight -> installs on iPhones
+#                    (needs a paid Apple Developer account, see README "iOS")
+#   ios-unsigned   : FREE .ipa without signing -> install it from Windows with
+#                    Sideloadly / AltStore using a free Apple ID (re-sign every 7 days)
+
+definitions:
+  bundle_id: &bundle_id com.elysium1937.scouting
+
+workflows:
+  ios-testflight:
+    name: iOS - TestFlight (signed)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: elysium_asc   # = the name you give the API key in Codemagic
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: *bundle_id
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Elysium platform setup (name, icons, iOS 13, bundle id)
+        script: dart tool/setup_platforms.dart --bundle-id=com.elysium1937.scouting
+      - name: Install CocoaPods
+        script: |
+          flutter precache --ios
+          if [ -f ios/Podfile ]; then cd ios && pod install; fi
+      - name: Apply signing profiles to the Xcode project
+        script: xcode-project use-profiles
+      - name: Build signed IPA
+        script: |
+          flutter build ipa --release \
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  ios-unsigned:
+    name: iOS - unsigned IPA (sideload)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Elysium platform setup
+        script: dart tool/setup_platforms.dart --bundle-id=com.elysium1937.scouting
+      - name: Build without code signing
+        script: flutter build ios --release --no-codesign --build-number=$BUILD_NUMBER
+      - name: Package unsigned .ipa
+        script: |
+          mkdir -p build/ios/ipa/Payload
+          cp -R build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          cd build/ios/ipa
+          zip -qr Elysium1937Scouting-unsigned.ipa Payload
+    artifacts:
+      - build/ios/ipa/*.ipa

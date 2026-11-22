@@ -3,6 +3,7 @@
 // Run it from the root of your Flutter project (the folder with pubspec.yaml):
 //
 //     dart tool/setup_platforms.dart
+//     dart tool/setup_platforms.dart --bundle-id=com.elysium1937.scouting   (iOS id, optional)
 //
 // What it does (safe to run again - it only changes what is not set yet):
 //   * Android : app name, launcher icon reference (fixes "resource
@@ -23,17 +24,21 @@ const String shortName = 'Elysium 1937';
 const String description =
     'Offline-first FRC scouting, strategy and lead analytics for Elysium 1937.';
 
-void main() {
+void main(List<String> args) {
   if (!File('pubspec.yaml').existsSync() || !Directory('lib').existsSync()) {
     stderr.writeln(
         'Run this from the root of your Flutter project (the folder that contains pubspec.yaml).');
     exit(1);
   }
+  String? bundleId;
+  for (final a in args) {
+    if (a.startsWith('--bundle-id=')) bundleId = a.substring('--bundle-id='.length);
+  }
   print('Setting up platform files for "$appName"\n');
   _ensureNativeProjects();
   _installIcons();
   _android();
-  _ios();
+  _ios(bundleId);
   _web();
   _windows();
   _macos();
@@ -229,7 +234,7 @@ void _checkAndroidSources() {
 }
 
 // -------------------------------------------------------------------- iOS
-void _ios() {
+void _ios(String? bundleId) {
   print('iOS');
   _edit('ios/Runner/Info.plist', 'Info.plist (name, export compliance)', (s) {
     s = _plistString(s, 'CFBundleDisplayName', appName);
@@ -244,6 +249,16 @@ void _ios() {
     }
     return "platform :ios, '13.0'\n$s";
   });
+  if (bundleId != null && bundleId.isNotEmpty) {
+    _edit('ios/Runner.xcodeproj/project.pbxproj', 'project.pbxproj (bundle id)',
+        (s) {
+      return s.replaceAllMapped(RegExp(r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);'),
+          (m) {
+        final id = m[1]!.contains('RunnerTests') ? '$bundleId.RunnerTests' : bundleId;
+        return 'PRODUCT_BUNDLE_IDENTIFIER = $id;';
+      });
+    });
+  }
   _edit('ios/Runner.xcodeproj/project.pbxproj', 'project.pbxproj (iOS 13)', (s) {
     return s.replaceAll(RegExp(r'IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;'),
         'IPHONEOS_DEPLOYMENT_TARGET = 13.0;');
