@@ -62,5 +62,7 @@ Scouter deletes only his own forms, Strategy only his own reports, Leader any fo
 - [ ] Use data from The Blue Alliance (TBA) to pre-fill team numbers and match schedules.
 - [ ] Add a "match schedule" page for Strategy and Leader roles, with live match data.
 - [ ] Add an "Overall Rankings" page for Leader role, with live data from all teams from all competitions.
+- [ ] Add a language toggle (Hebrew, English)
+
 
 
