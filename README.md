@@ -60,7 +60,14 @@ Scouter deletes only his own forms, Strategy only his own reports, Leader any fo
 
 # Future features
 - [ ] Use data from The Blue Alliance (TBA) to pre-fill team numbers and match schedules.
-- [ ] Add a "match schedule" page for Strategy and Leader roles, with live match data.
+- [ ] Add a "match schedule" page for every role, with live match data.
 - [ ] Add an "Overall Rankings" page for Leader role, with live data from all teams from all competitions.
-
-
+- [ ] When login/signup dont use the internet, download the db and make it work offline
+- [ ] in scouter form, instead of counting how much the robot intake, change it to how many balls the robot shoot into his aliiance zone and call it "how many fuels the robot pass to his alliance zone"
+- [ ] in the scout performance ranking, write how do you calcculate it
+- [ ] for every team that's want to use our app there will be different access code, other teams cant delete other teams forms but they can see them (it's means that in the register screen before the member choose a roll hw need to choose his team)
+- [ ] the scouter can do only scouting, the stragedy can do scouting, super scouting and data, and leader everything
+- [ ] in the deleting forms, if the same game have 3 or more forms it will show which forms are more accurate in green and in red which are not so accurate
+- [ ] the leader can create new competitions with existing teams
+- [ ] another type of scouting: pit scouting, (first we need to choose to which team we do pit scouting, this scouting type is only for stragety and leader) the questions: What are the autonomus types of the team, hhat they do good, what they difficult with, how they do diffence ect. and all is a phrase
+- [ ] Add a language swith (english and hebrew, and make the font in hebrew looks good, the font in hebrew will be assistant)
