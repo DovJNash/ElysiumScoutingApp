@@ -14,6 +14,8 @@ import '../widgets/my_submissions_sheet.dart';
 import '../widgets/responsive_counter_pad.dart';
 import '../widgets/sync_status_badge.dart';
 import '../widgets/team_picker.dart';
+import '../services/locale_service.dart';
+import '../widgets/match_schedule_page.dart';
 
 class ScouterHomeScreen extends StatefulWidget {
   const ScouterHomeScreen({super.key});
@@ -283,6 +285,17 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
         appBar: AppBar(
           title: ElysiumAppBarTitle('Scouter • ${user.name}'),
           actions: [
+            const LocaleSwitchButton(),
+            IconButton(
+              tooltip: 'Match Schedule',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const Scaffold(
+                  appBar: null,
+                  body: MatchSchedulePage(),
+                )),
+              ),
+              icon: const Icon(Icons.calendar_month_rounded),
+            ),
             const SyncStatusBadge(),
             IconButton(
               tooltip: 'My Submissions',
@@ -492,7 +505,7 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
             ),
             const SizedBox(height: 14),
             ResponsiveCounterPad(
-              label: 'Auto Game Pieces Collected',
+              label: 'How Many Fuels Passed to Alliance Zone',
               value: _autoIntake,
               accentColor: Elysium.accent,
               onChanged: (v) => setState(() => _autoIntake = v),
@@ -517,7 +530,7 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
             ),
             const SizedBox(height: 14),
             ResponsiveCounterPad(
-              label: 'Teleop Game Pieces Collected',
+              label: 'How Many Fuels Passed to Alliance Zone',
               value: _teleopIntake,
               accentColor: Elysium.accent,
               onChanged: (v) => setState(() => _teleopIntake = v),

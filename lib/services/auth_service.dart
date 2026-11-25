@@ -21,6 +21,15 @@ class AuthService extends ChangeNotifier {
 
   SupabaseClient get _supabase => Supabase.instance.client;
 
+  bool _isNetworkError(Object e) {
+    final text = e.toString();
+    return e is TimeoutException ||
+        text.contains('SocketException') ||
+        text.contains('ClientException') ||
+        text.contains('Failed host lookup') ||
+        text.contains('XMLHttpRequest');
+  }
+
   Future<void> restoreSession() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_prefsKey);
@@ -41,6 +50,37 @@ class AuthService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefsKey, json.encode(user.toMap()));
     notifyListeners();
+  }
+
+  Future<void> _saveCredential({
+    required String name,
+    required String password,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final mapRaw = prefs.getString('elysium_offline_credentials');
+    final credentials = mapRaw == null
+        ? <String, dynamic>{}
+        : Map<String, dynamic>.from(json.decode(mapRaw) as Map);
+    credentials[name.trim().toLowerCase()] = password;
+    await prefs.setString(
+        'elysium_offline_credentials', json.encode(credentials));
+  }
+
+  Future<UserModel?> _offlineLogin({
+    required String name,
+    required String password,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('elysium_offline_credentials');
+    if (raw == null) return null;
+    final credentials =
+        Map<String, dynamic>.from(json.decode(raw) as Map);
+    final expected = credentials[name.trim().toLowerCase()];
+    if (expected != password) return null;
+    final sessionRaw = prefs.getString(_prefsKey);
+    if (sessionRaw == null) return null;
+    return UserModel.fromMap(
+        Map<String, dynamic>.from(json.decode(sessionRaw) as Map));
   }
 
   String _friendly(Object e) {
@@ -86,9 +126,19 @@ class AuthService extends ChangeNotifier {
       final rows = List<Map<String, dynamic>>.from(res as List);
       if (rows.isEmpty) throw Exception('Invalid name or password.');
       final user = UserModel.fromRpc(rows.first);
+      await _saveCredential(name: name, password: password);
       await _saveSession(user);
       return user;
     } catch (e) {
+      final offline = await _offlineLogin(
+          name: name, password: password);
+      if (offline != null) {
+        _currentUser = offline;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_prefsKey, json.encode(offline.toMap()));
+        notifyListeners();
+        return offline;
+      }
       throw Exception(_friendly(e));
     }
   }
@@ -98,6 +148,8 @@ class AuthService extends ChangeNotifier {
     required String password,
     required String role,
     String accessCode = '',
+    int teamNumber = 0,
+    String teamAccessCode = '',
   }) async {
     if (name.trim().isEmpty || password.isEmpty) {
       throw Exception('Name and password cannot be empty.');
@@ -109,13 +161,30 @@ class AuthService extends ChangeNotifier {
         'p_password': password, // plain text, per your specification
         'p_role': UserRole.normalize(role),
         'p_code': accessCode.trim(),
+        'p_team_number': teamNumber,
+        'p_team_code': teamAccessCode.trim(),
       }).timeout(const Duration(seconds: 20));
       final rows = List<Map<String, dynamic>>.from(res as List);
       if (rows.isEmpty) throw Exception('Sign up failed. Please try again.');
       final user = UserModel.fromRpc(rows.first);
+      await _saveCredential(name: name, password: password);
       await _saveSession(user);
       return user;
     } catch (e) {
+      if (_isNetworkError(e) &&
+          teamNumber > 0 &&
+          teamAccessCode.trim().isNotEmpty) {
+        final offline = UserModel(
+          id: const Uuid().v4(),
+          name: name.trim(),
+          role: UserRole.normalize(role),
+          teamNumber: teamNumber,
+          teamName: 'Team $teamNumber',
+        );
+        await _saveCredential(name: name, password: password);
+        await _saveSession(offline);
+        return offline;
+      }
       throw Exception(_friendly(e));
     }
   }

@@ -10,7 +10,10 @@ import 'services/auth_service.dart';
 import 'services/data_repository.dart';
 import 'services/local_db_service.dart';
 import 'services/sync_service.dart';
+import 'services/locale_service.dart';
+import 'services/pit_scouting_service.dart';
 import 'theme/elysium_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +28,8 @@ Future<void> main() async {
     await AuthService.instance.restoreSession();
     await DataRepository.instance.start();
     await SyncService.instance.initialize();
+    await LocaleService.instance.initialize();
+    await PitScoutingService.instance.initialize();
   } catch (e) {
     // Never show a blank screen: tell the user what went wrong.
     runApp(_StartupError(error: e));
@@ -39,8 +44,19 @@ class FrcScoutingApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return ListenableBuilder(
+      listenable: LocaleService.instance,
+      builder: (context, _) {
+        final locale = LocaleService.instance.locale;
+        return MaterialApp(
       title: 'Elysium 1937 Scouting App',
+      locale: locale,
+      supportedLocales: const [Locale('en'), Locale('he')],
+      theme: Elysium.theme().copyWith(
+        textTheme: locale.languageCode == 'he'
+            ? GoogleFonts.assistantTextTheme(Elysium.theme().textTheme)
+            : Elysium.theme().textTheme,
+      ),
       // Tap anywhere outside a text field to close the keyboard (the iOS number
       // pad has no "Done" key, so this is needed on iPhone / iPad).
       builder: (context, child) => GestureDetector(
@@ -49,7 +65,6 @@ class FrcScoutingApp extends StatelessWidget {
         child: child,
       ),
       debugShowCheckedModeBanner: false,
-      theme: Elysium.theme(),
       home: ListenableBuilder(
         listenable: AuthService.instance,
         builder: (context, _) {
@@ -65,6 +80,8 @@ class FrcScoutingApp extends StatelessWidget {
           }
         },
       ),
+        );
+      },
     );
   }
 }

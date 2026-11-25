@@ -59,6 +59,15 @@ class CompetitionInfo {
 class CompetitionRepository {
   static List<CompetitionInfo>? _cached;
 
+  static void addCompetition(CompetitionInfo competition) {
+    final current = _cached ?? <CompetitionInfo>[];
+    final replaced = current
+        .where((item) => item.id != competition.id)
+        .toList()
+      ..add(competition);
+    _cached = replaced;
+  }
+
   static Future<List<CompetitionInfo>> loadCompetitions() async {
     if (_cached != null) return _cached!;
     final jsonString = await rootBundle.loadString('assets/competitions.json');

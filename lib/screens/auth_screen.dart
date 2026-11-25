@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../theme/elysium_theme.dart';
+import '../services/locale_service.dart';
 
 enum _AuthView { splitChoice, loginForm, roleSelect, signUpForm }
 
@@ -19,6 +21,8 @@ class _AuthScreenState extends State<AuthScreen> {
   final _name = TextEditingController();
   final _password = TextEditingController();
   final _code = TextEditingController();
+  final _teamNumber = TextEditingController();
+  final _teamCode = TextEditingController();
   bool _loading = false;
   String? _error;
 
@@ -27,6 +31,8 @@ class _AuthScreenState extends State<AuthScreen> {
     _name.dispose();
     _password.dispose();
     _code.dispose();
+    _teamNumber.dispose();
+    _teamCode.dispose();
     super.dispose();
   }
 
@@ -44,6 +50,8 @@ class _AuthScreenState extends State<AuthScreen> {
           password: _password.text,
           role: _role,
           accessCode: _code.text,
+          teamNumber: int.tryParse(_teamNumber.text.trim()) ?? 0,
+          teamAccessCode: _teamCode.text,
         );
       }
     } catch (e) {
@@ -109,23 +117,34 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
       child: SafeArea(
         bottom: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16, tall ? 14 : 8, 16, tall ? 18 : 10),
-          child: tall
-              ? const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ElysiumFullLogo(height: 118, onDark: true),
-                    SizedBox(height: 6),
-                    Text('SCOUTING SYSTEM',
-                        style: TextStyle(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 3,
-                            fontSize: 12)),
-                  ],
-                )
-              : const Center(child: ElysiumLogo(size: 42, onDark: true)),
+        child: Stack(
+          children: [
+            Padding(
+              padding:
+                  EdgeInsets.fromLTRB(16, tall ? 14 : 8, 16, tall ? 18 : 10),
+              child: tall
+                  ? const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ElysiumFullLogo(height: 118, onDark: true),
+                        SizedBox(height: 6),
+                        Text('SCOUTING SYSTEM',
+                            style: TextStyle(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 3,
+                                fontSize: 12)),
+                      ],
+                    )
+                  : const Center(
+                      child: ElysiumLogo(size: 42, onDark: true)),
+            ),
+            const Positioned(
+              right: 8,
+              top: 4,
+              child: LocaleSwitchButton(),
+            ),
+          ],
         ),
       ),
     );
@@ -292,6 +311,29 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   onSubmitted: (_) => _loading ? null : _submit(),
                 ),
+                if (isSignUp) ...[
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _teamNumber,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Team number',
+                      prefixIcon: Icon(Icons.groups_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _teamCode,
+                    decoration: const InputDecoration(
+                      labelText: 'Team access code',
+                      helperText: 'Use the code issued to your team',
+                      prefixIcon: Icon(Icons.key_rounded),
+                    ),
+                  ),
+                ],
                 if (needsCode) ...[
                   const SizedBox(height: 14),
                   TextField(

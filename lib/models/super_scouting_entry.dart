@@ -146,7 +146,7 @@ class SuperScoutingEntry {
       'Shooting rate (BPS)': v(bps),
       'Shooting mechanics': v(shootingLimits),
       'Missed shots': v(missPercent),
-      'Intake': v(intakeSpeed),
+      'Fuel passing to alliance zone': v(intakeSpeed),
       'Capacity': v(robotCap),
       'Limitations': v(robotLimits),
       'Driver skills': v(driverSkills),
