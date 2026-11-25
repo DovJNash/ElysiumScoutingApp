@@ -17,22 +17,6 @@ class LocaleService extends ChangeNotifier {
     if (code == 'he') _locale = const Locale('he');
   }
 
-  class LocaleSwitchButton extends StatelessWidget {
-    const LocaleSwitchButton({super.key});
-
-    @override
-    Widget build(BuildContext context) {
-      final service = LocaleService.instance;
-      return IconButton(
-        tooltip: service.text('language'),
-        onPressed: () => service.setLocale(
-          service.isHebrew ? const Locale('en') : const Locale('he'),
-        ),
-        icon: const Icon(Icons.language_rounded),
-      );
-    }
-  }
-
   Future<void> setLocale(Locale locale) async {
     if (locale.languageCode != 'en' && locale.languageCode != 'he') return;
     _locale = Locale(locale.languageCode);
@@ -71,4 +55,20 @@ class LocaleService extends ChangeNotifier {
     'team_access_code': 'קוד גישה לקבוצה',
     'language': 'שפה',
   };
+}
+
+class LocaleSwitchButton extends StatelessWidget {
+  const LocaleSwitchButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final service = LocaleService.instance;
+    return IconButton(
+      tooltip: service.text('language'),
+      onPressed: () => service.setLocale(
+        service.isHebrew ? const Locale('en') : const Locale('he'),
+      ),
+      icon: const Icon(Icons.language_rounded),
+    );
+  }
 }

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
-import '../theme/elysium_theme.dart';
 import '../services/locale_service.dart';
+import '../theme/elysium_theme.dart';
 
 enum _AuthView { splitChoice, loginForm, roleSelect, signUpForm }
 
