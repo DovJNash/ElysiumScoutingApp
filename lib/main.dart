@@ -72,17 +72,20 @@ class FrcScoutingApp extends StatelessWidget {
       ),
       debugShowCheckedModeBanner: false,
       home: ListenableBuilder(
-        listenable: AuthService.instance,
+        listenable: Listenable.merge([
+          AuthService.instance,
+          LocaleService.instance,
+        ]),
         builder: (context, _) {
           final user = AuthService.instance.currentUser;
-          if (user == null) return const AuthScreen();
+          if (user == null) return AuthScreen();
           switch (user.role) {
             case UserRole.strategy:
-              return const StrategyHomeScreen();
+              return StrategyHomeScreen();
             case UserRole.leader:
-              return const LeaderHomeScreen();
+              return LeaderHomeScreen();
             default:
-              return const ScouterHomeScreen();
+              return ScouterHomeScreen();
           }
         },
       ),
