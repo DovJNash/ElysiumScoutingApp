@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart' hide Text;
-import '../services/locale_service.dart';
 
 import '../models/team_model.dart';
+import '../services/locale_service.dart';
 import '../services/tba_service.dart';
 import '../theme/elysium_theme.dart';
 import 'localized_text.dart';
@@ -14,69 +14,94 @@ class MatchSchedulePage extends StatefulWidget {
 }
 
 class _MatchSchedulePageState extends State<MatchSchedulePage> {
-  final _eventKey = TextEditingController();
+  List<TbaEvent> _events = [];
+  TbaEvent? _selectedEvent;
   final List<TbaMatch> _matches = [];
   final List<TbaTeam> _teams = [];
+  bool _loadingEvents = true;
   bool _loading = false;
   Object? _error;
 
   @override
   void initState() {
     super.initState();
-    CompetitionRepository.loadCompetitions().then((competitions) {
-      if (!mounted || competitions.isEmpty) return;
-      final event = competitions.first.id;
-      _eventKey.text = event;
-      _load(event);
-    });
+    _loadEvents();
   }
 
-  @override
-  void dispose() {
-    _eventKey.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load(String eventKey) async {
+  Future<void> _loadEvents() async {
     setState(() {
-      _loading = true;
+      _loadingEvents = true;
       _error = null;
     });
+
+    List<TbaEvent> events = [];
+    Object? loadError;
     try {
-      var matches = await TbaService.instance.matchesAtEvent(eventKey);
-      var teams = await TbaService.instance.teamsAtEvent(eventKey);
-      matches = matches.isEmpty
-          ? await TbaService.instance.cachedMatches(eventKey)
-          : matches;
-      teams =
-          teams.isEmpty ? await TbaService.instance.cachedTeams(eventKey) : teams;
+      events =
+          await TbaService.instance.israeliDistrictEvents(year: 2027);
+    } catch (error) {
+      loadError = error;
+      events =
+          await TbaService.instance.cachedIsraeliDistrictEvents(year: 2027);
+    }
+    if (events.isEmpty) {
+      final competitions = await CompetitionRepository.loadCompetitions();
+      events = competitions
+          .map((competition) => TbaEvent(
+                key: competition.id,
+                name: competition.name,
+              ))
+          .where((event) => event.key.startsWith('2027'))
+          .toList();
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _events = events;
+      _selectedEvent = events.isEmpty ? null : events.first;
+      _error = loadError;
+      _loadingEvents = false;
+    });
+    if (_selectedEvent != null) {
+      await _load(_selectedEvent!);
+    }
+  }
+
+  Future<void> _load(TbaEvent event) async {
+    setState(() {
+      _selectedEvent = event;
+      _loading = true;
+      _error = null;
+      _matches.clear();
+      _teams.clear();
+    });
+    try {
+      final results = await Future.wait<Object>([
+        TbaService.instance.matchesAtEvent(event.key),
+        TbaService.instance.teamsAtEvent(event.key),
+      ]);
+      final matches = results[0] as List<TbaMatch>;
+      final teams = results[1] as List<TbaTeam>;
+      if (mounted) {
+        setState(() {
+          _matches.addAll(matches);
+          _teams.addAll(teams);
+        });
+      }
+    } catch (error) {
+      final cachedMatches =
+          await TbaService.instance.cachedMatches(event.key);
+      final cachedTeams = await TbaService.instance.cachedTeams(event.key);
       if (mounted) {
         setState(() {
           _matches
             ..clear()
-            ..addAll(matches);
+            ..addAll(cachedMatches);
           _teams
             ..clear()
-            ..addAll(teams);
+            ..addAll(cachedTeams);
+          _error = error;
         });
-      }
-    } catch (error) {
-      if (mounted) {
-        final cachedMatches =
-            await TbaService.instance.cachedMatches(eventKey);
-        final cachedTeams =
-            await TbaService.instance.cachedTeams(eventKey);
-        if (mounted) {
-          setState(() {
-            _matches
-              ..clear()
-              ..addAll(cachedMatches);
-            _teams
-              ..clear()
-              ..addAll(cachedTeams);
-            _error = error;
-          });
-        }
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -95,23 +120,30 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
           child: Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: _eventKey,
+                child: DropdownButtonFormField<TbaEvent>(
+                  value: _selectedEvent,
+                  isExpanded: true,
                   decoration: InputDecoration(
-                    labelText: LocaleService.instance.text('TBA event key'),
-                    hintText: LocaleService.instance.text('e.g. 2025isde1'),
+                    labelText: LocaleService.instance.text('Competition'),
                   ),
+                  hint: const Text('Choose a 2027 Israel competition'),
+                  items: _events
+                      .map((event) => DropdownMenuItem(
+                            value: event,
+                            child: Text(event.label),
+                          ))
+                      .toList(),
+                  onChanged: _loadingEvents || _loading
+                      ? null
+                      : (event) {
+                          if (event != null) _load(event);
+                        },
                 ),
               ),
-              const SizedBox(width: 10),
-              SizedBox(
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _loading
-                      ? null
-                      : () => _load(_eventKey.text.trim()),
-                  child: const Text('Load'),
-                ),
+              IconButton(
+                tooltip: 'Refresh competitions',
+                onPressed: _loadingEvents || _loading ? null : _loadEvents,
+                icon: const Icon(Icons.refresh_rounded),
               ),
             ],
           ),
@@ -124,16 +156,18 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
               style: const TextStyle(color: Elysium.warning),
             ),
           ),
-        if (_loading)
+        if (_loadingEvents || _loading)
           const LinearProgressIndicator()
         else
           Expanded(
             child: _matches.isEmpty
                 ? Center(
                     child: Text(
-                      _teams.isEmpty
-                          ? 'No schedule loaded'
-                          : '${_teams.length} teams loaded',
+                      _events.isEmpty
+                          ? 'No 2027 Israel competitions found.'
+                          : _teams.isEmpty
+                              ? 'No schedule loaded'
+                              : '${_teams.length} teams loaded',
                       style: const TextStyle(color: Elysium.muted),
                     ),
                   )

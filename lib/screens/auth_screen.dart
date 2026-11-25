@@ -24,6 +24,7 @@ class _AuthScreenState extends State<AuthScreen> {
   TbaTeam? _selectedTeam;
   bool _loadingTeams = false;
   bool _manualTeamEntry = false;
+  bool _resolvingManualTeam = false;
   String _teamQuery = '';
 
   final _name = TextEditingController();
@@ -105,23 +106,53 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  void _selectManualTeam() {
+  Future<void> _selectManualTeam() async {
     final number = int.tryParse(_manualTeamNumber.text.trim());
-    final name = _manualTeamName.text.trim();
     if (number == null || number <= 0) {
       setState(() => _error = 'Enter a valid team number.');
       return;
     }
 
     setState(() {
-      _selectedTeam = TbaTeam(
-        number: number,
-        name: name.isEmpty ? 'Team $number' : name,
-        logoUrl: 'https://www.thebluealliance.com/avatar/2027/frc$number.png',
-      );
+      _resolvingManualTeam = true;
       _error = null;
-      _view = _AuthView.roleSelect;
     });
+    try {
+      var name = _manualTeamName.text.trim();
+      if (name.isEmpty) {
+        final listed = _israeliTeams.where((team) => team.number == number);
+        if (listed.isNotEmpty) {
+          name = listed.first.name;
+        } else {
+          final team = await TbaService.instance.teamByNumber(number);
+          name = team.name;
+        }
+      }
+      if (!mounted) return;
+      if (name.isEmpty || name == 'Team $number') {
+        setState(() {
+          _error = 'Team name could not be found. Please enter it manually.';
+        });
+        return;
+      }
+      setState(() {
+        _selectedTeam = TbaTeam(
+          number: number,
+          name: name,
+          logoUrl: 'https://www.thebluealliance.com/avatar/2027/frc$number.png',
+        );
+        _error = null;
+        _view = _AuthView.roleSelect;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = 'Could not look up the team name. Please enter it manually.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _resolvingManualTeam = false);
+    }
   }
 
   @override
@@ -333,9 +364,18 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
-                    onPressed: _selectManualTeam,
-                    icon: const Icon(Icons.arrow_forward_rounded),
-                    label: const Text('Continue with this team'),
+                    onPressed:
+                        _resolvingManualTeam ? null : _selectManualTeam,
+                    icon: _resolvingManualTeam
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.arrow_forward_rounded),
+                    label: Text(_resolvingManualTeam
+                        ? 'Looking up team...'
+                        : 'Continue with this team'),
                   ),
                   TextButton(
                     onPressed: () => setState(() {
@@ -368,7 +408,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       return Card(
                         child: ListTile(
                           leading: TeamLogo(team: teamInfo, size: 44),
-                          title: Text('${team.number} — ${team.name}'),
+                          title: Text('${team.number} - ${team.name}'),
                           trailing: const Icon(Icons.chevron_right_rounded),
                           onTap: () {
                             setState(() {
@@ -443,7 +483,7 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                '${_selectedTeam!.number} — ${_selectedTeam!.name}',
+                '${_selectedTeam!.number} - ${_selectedTeam!.name}',
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
             ],
@@ -559,7 +599,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          '${_selectedTeam!.number} — ${_selectedTeam!.name}',
+                          '${_selectedTeam!.number} - ${_selectedTeam!.name}',
                           style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
                       ),

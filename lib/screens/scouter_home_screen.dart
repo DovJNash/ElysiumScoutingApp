@@ -290,10 +290,12 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
             IconButton(
               tooltip: 'Match Schedule',
               onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const Scaffold(
-                  appBar: null,
-                  body: MatchSchedulePage(),
-                )),
+                MaterialPageRoute(
+                  builder: (_) => Scaffold(
+                    appBar: AppBar(title: const Text('Match Schedule')),
+                    body: const MatchSchedulePage(),
+                  ),
+                ),
               ),
               icon: const Icon(Icons.calendar_month_rounded),
             ),

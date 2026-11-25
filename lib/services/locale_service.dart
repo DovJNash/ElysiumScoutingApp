@@ -19,10 +19,12 @@ class LocaleService extends ChangeNotifier {
 
   Future<void> setLocale(Locale locale) async {
     if (locale.languageCode != 'en' && locale.languageCode != 'he') return;
-    _locale = Locale(locale.languageCode);
+    final nextLocale = Locale(locale.languageCode);
+    if (_locale == nextLocale) return;
+    _locale = nextLocale;
+    notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefsKey, locale.languageCode);
-    notifyListeners();
   }
 
   String text(String value) {
@@ -50,6 +52,15 @@ class LocaleService extends ChangeNotifier {
         'הקבוצה לא נטענת או לא נמצאה? הזן אותה ידנית',
     'e.g. 1937': 'לדוגמה, 1937',
     'e.g. Elysium': 'לדוגמה, אליסיום',
+    'Team name could not be found. Please enter it manually.':
+        'לא נמצא שם הקבוצה. יש להזין אותו ידנית.',
+    'Could not look up the team name. Please enter it manually.':
+        'לא ניתן לאתר את שם הקבוצה. יש להזין אותו ידנית.',
+    'Looking up team...': 'מחפש את הקבוצה...',
+    'Choose a 2027 Israel competition': 'בחירת תחרות בישראל לשנת 2027',
+    'Refresh competitions': 'רענון תחרויות',
+    'No 2027 Israel competitions found.':
+        'לא נמצאו תחרויות בישראל לשנת 2027.',
     'Could not load the 2027 Israeli team list. Check the TBA API key and internet connection.':
         'טעינת רשימת הקבוצות בישראל נכשלה. יש לבדוק חיבור לאינטרנט ואת מפתח TBA.',
     'Access your scouting, strategy or lead console':

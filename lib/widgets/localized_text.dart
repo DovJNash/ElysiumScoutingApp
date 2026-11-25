@@ -21,12 +21,15 @@ class Text extends material.StatelessWidget {
   });
 
   @override
-  material.Widget build(material.BuildContext context) => material.Text(
-        LocaleService.instance.text(data),
-        style: style,
-        textAlign: textAlign,
-        overflow: overflow,
-        maxLines: maxLines,
-        softWrap: softWrap,
+  material.Widget build(material.BuildContext context) => material.ListenableBuilder(
+        listenable: LocaleService.instance,
+        builder: (context, _) => material.Text(
+          LocaleService.instance.text(data),
+          style: style,
+          textAlign: textAlign,
+          overflow: overflow,
+          maxLines: maxLines,
+          softWrap: softWrap,
+        ),
       );
 }

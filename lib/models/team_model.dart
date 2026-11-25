@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import '../config/supabase_config.dart';
+import '../services/tba_service.dart';
 
 class TeamInfo {
   final int number;
@@ -75,8 +76,43 @@ class CompetitionRepository {
     _cached = replaced;
   }
 
-  static Future<List<CompetitionInfo>> loadCompetitions() async {
-    if (_cached != null) return _cached!;
+  static Future<List<CompetitionInfo>> _fromTbaEvents(
+      List<TbaEvent> events) async {
+    final competitions = await Future.wait(events.map((event) async {
+      List<TbaTeam> teams;
+      try {
+        teams = await TbaService.instance.teamsAtEvent(event.key);
+      } catch (_) {
+        teams = await TbaService.instance.cachedTeams(event.key);
+      }
+      return CompetitionInfo(
+        id: event.key,
+        name: event.label,
+        teams: teams
+            .map((team) => TeamInfo.fromTba(
+                  number: team.number,
+                  name: team.name,
+                  logoUrl: team.logoUrl,
+                ))
+            .toList(),
+      );
+    }));
+    _cached = competitions;
+    return competitions;
+  }
+
+  static Future<List<CompetitionInfo>> loadCompetitions(
+      {int year = 2027}) async {
+    List<TbaEvent> events = [];
+    try {
+      events = await TbaService.instance.israeliDistrictEvents(year: year);
+    } catch (_) {
+      events =
+          await TbaService.instance.cachedIsraeliDistrictEvents(year: year);
+    }
+
+    if (events.isNotEmpty) return _fromTbaEvents(events);
+    if (_cached != null && _cached!.isNotEmpty) return _cached!;
     final jsonString = await rootBundle.loadString('assets/competitions.json');
     final decoded = json.decode(jsonString) as Map<String, dynamic>;
     final list = decoded['competitions'] as List<dynamic>;
