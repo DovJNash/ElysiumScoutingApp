@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:frc_scouting_app/models/pit_scouting_entry.dart';
 import 'package:frc_scouting_app/models/user_model.dart';
+import 'package:frc_scouting_app/screens/auth_screen.dart';
 import 'package:frc_scouting_app/services/locale_service.dart';
 import 'package:frc_scouting_app/services/tba_service.dart';
 
@@ -85,5 +86,32 @@ void main() {
 
     await LocaleService.instance.setLocale(const Locale('he'));
     expect(LocaleService.instance.text('SIGN UP'), 'הרשמה');
+  });
+
+  testWidgets('registration can select a team manually when TBA is unavailable',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await LocaleService.instance.setLocale(const Locale('en'));
+    await tester.binding.setSurfaceSize(const Size(900, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const MaterialApp(home: AuthScreen()));
+    await tester.tap(find.text('SIGN UP'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Can’t load or find your team? Enter it manually'),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.text('Can’t load or find your team? Enter it manually'),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), '1690');
+    await tester.tap(find.text('Continue with this team'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('What is your role?'), findsOneWidget);
+    expect(find.text('1690 — Team 1690'), findsOneWidget);
   });
 }
