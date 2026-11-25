@@ -125,84 +125,114 @@ class _LeaderHomeScreenState extends State<LeaderHomeScreen> {
     final leader = AuthService.instance.currentUser!;
     return DefaultTabController(
       length: 6,
-      child: Scaffold(
-        appBar: AppBar(
-          title: ElysiumAppBarTitle('Lead • ${leader.name}'),
-          actions: [
-            const LocaleSwitchButton(),
-            const SyncStatusBadge(),
-            IconButton(
-              tooltip: 'Create competition',
-              onPressed: () => _createCompetition(context),
-              icon: const Icon(Icons.add_business_rounded),
-            ),
-            IconButton(
-              tooltip: 'Log Out',
-              onPressed: () => AuthService.instance.logout(),
-              icon: const Icon(Icons.logout_rounded),
-            ),
-          ],
-          bottom: const TabBar(
-            indicatorColor: Colors.white,
-            indicatorWeight: 3,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            tabs: [
-              Tab(icon: Icon(Icons.leaderboard_rounded), text: 'Rankings'),
-              Tab(icon: Icon(Icons.folder_open_rounded), text: 'Forms'),
-              Tab(icon: Icon(Icons.bar_chart_rounded), text: 'Data'),
-              Tab(icon: Icon(Icons.emoji_events_rounded), text: 'Overall'),
-              Tab(icon: Icon(Icons.calendar_month_rounded), text: 'Schedule'),
-              Tab(icon: Icon(Icons.handyman_rounded), text: 'Pit'),
-            ],
-          ),
-        ),
-        body: _comp == null
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  Container(
-                    decoration: const BoxDecoration(
-                      color: Elysium.surface,
-                      border: Border(bottom: BorderSide(color: Elysium.border)),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    child: Row(children: [
-                      const Icon(Icons.emoji_events_outlined, color: Elysium.primary),
-                      const SizedBox(width: 10),
-                      const Text('Event', style: TextStyle(fontWeight: FontWeight.w800)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DropdownButton<CompetitionInfo>(
-                          value: _comp,
-                          isExpanded: true,
-                          dropdownColor: Elysium.surface2,
-                          underline: const SizedBox.shrink(),
-                          items: _competitions
-                              .map((c) => DropdownMenuItem(value: c, child: Text(c.name)))
-                              .toList(),
-                          onChanged: (v) {
-                            if (v != null) setState(() => _comp = v);
-                          },
-                        ),
-                      ),
-                    ]),
+      child: Builder(builder: (context) {
+        final tabs = DefaultTabController.of(context);
+        return AnimatedBuilder(
+          animation: tabs,
+          builder: (context, _) => PopScope(
+            canPop: tabs.index == 0,
+            onPopInvokedWithResult: (didPop, _) {
+              if (!didPop) tabs.animateTo(0);
+            },
+            child: Scaffold(
+              appBar: AppBar(
+                title: ElysiumAppBarTitle('Lead • ${leader.name}'),
+                actions: [
+                  const LocaleSwitchButton(),
+                  const SyncStatusBadge(),
+                  IconButton(
+                    tooltip: 'Create competition',
+                    onPressed: () => _createCompetition(context),
+                    icon: const Icon(Icons.add_business_rounded),
                   ),
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        _RankingsTab(competition: _comp!),
-                        _FormsTab(competition: _comp!),
-                        AnalyticsDashboard(fixedCompetition: _comp),
-                        const _OverallRankingsTab(),
-                        const MatchSchedulePage(),
-                        _LeaderPitTab(competition: _comp!),
-                      ],
-                    ),
+                  IconButton(
+                    tooltip: 'Log Out',
+                    onPressed: () => AuthService.instance.logout(),
+                    icon: const Icon(Icons.logout_rounded),
                   ),
                 ],
+                bottom: const TabBar(
+                  indicatorColor: Colors.white,
+                  indicatorWeight: 3,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white70,
+                  tabs: [
+                    Tab(icon: Icon(Icons.leaderboard_rounded), text: 'Rankings'),
+                    Tab(icon: Icon(Icons.folder_open_rounded), text: 'Forms'),
+                    Tab(icon: Icon(Icons.bar_chart_rounded), text: 'Data'),
+                    Tab(icon: Icon(Icons.emoji_events_rounded), text: 'Overall'),
+                    Tab(icon: Icon(Icons.calendar_month_rounded), text: 'Schedule'),
+                    Tab(icon: Icon(Icons.handyman_rounded), text: 'Pit'),
+                  ],
+                ),
               ),
-      ),
+              body: _comp == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : Column(
+                      children: [
+                        Container(
+                          decoration: const BoxDecoration(
+                            color: Elysium.surface,
+                            border: Border(
+                              bottom: BorderSide(color: Elysium.border),
+                            ),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 6,
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.emoji_events_outlined,
+                                color: Elysium.primary,
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                'Event',
+                                style: TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: DropdownButton<CompetitionInfo>(
+                                  value: _comp,
+                                  isExpanded: true,
+                                  dropdownColor: Elysium.surface2,
+                                  underline: const SizedBox.shrink(),
+                                  items: _competitions
+                                      .map(
+                                        (c) => DropdownMenuItem(
+                                          value: c,
+                                          child: Text(c.name),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (v) {
+                                    if (v != null) setState(() => _comp = v);
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: TabBarView(
+                            children: [
+                              _RankingsTab(competition: _comp!),
+                              _FormsTab(competition: _comp!),
+                              AnalyticsDashboard(fixedCompetition: _comp),
+                              const _OverallRankingsTab(),
+                              const MatchSchedulePage(),
+                              _LeaderPitTab(competition: _comp!),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

@@ -19,9 +19,15 @@ class TbaTeam {
   factory TbaTeam.fromJson(Map<String, dynamic> json) {
     final key = json['key']?.toString() ?? '';
     final number = int.tryParse(key.replaceFirst('frc', '')) ?? 0;
+    final nickname = json['nickname']?.toString().trim() ?? '';
+    final officialName = json['name']?.toString().trim() ?? '';
     return TbaTeam(
       number: number,
-      name: json['nickname']?.toString() ?? 'Team $number',
+      name: nickname.isNotEmpty
+          ? nickname
+          : officialName.isNotEmpty
+              ? officialName
+              : 'Team $number',
       country: json['country']?.toString() ?? '',
       logoUrl: json['logoUrl']?.toString() ??
           'https://www.thebluealliance.com/avatar/2027/frc$number.png',
@@ -34,6 +40,32 @@ class TbaTeam {
         'country': country,
         'logoUrl': logoUrl,
       };
+}
+
+class TbaEvent {
+  final String key;
+  final String name;
+  final String city;
+
+  const TbaEvent({
+    required this.key,
+    required this.name,
+    this.city = '',
+  });
+
+  factory TbaEvent.fromJson(Map<String, dynamic> json) => TbaEvent(
+        key: json['key']?.toString() ?? '',
+        name: json['name']?.toString() ?? json['key']?.toString() ?? '',
+        city: json['city']?.toString() ?? '',
+      );
+
+  Map<String, dynamic> toJson() => {
+        'key': key,
+        'name': name,
+        'city': city,
+      };
+
+  String get label => city.isEmpty ? name : '$name — $city';
 }
 
 class TbaMatch {
@@ -156,23 +188,49 @@ class TbaService {
       throw Exception('TBA_API_KEY is not configured');
     }
 
-    final teams = <TbaTeam>[];
-    for (var page = 0; page < 20; page++) {
-      final result = await _get('/teams/$year/$page');
-      final pageTeams = (result as List)
-          .map((row) => TbaTeam.fromJson(row as Map<String, dynamic>))
-          .toList();
-      teams.addAll(pageTeams.where(
-        (team) => team.number > 0 && team.country.toLowerCase() == 'israel',
-      ));
-      if (pageTeams.length < 500) break;
-    }
+    final result = await _get('/district/${year}isr/teams/simple');
+    final teams = (result as List)
+        .map((row) => TbaTeam.fromJson(row as Map<String, dynamic>))
+        .where((team) => team.number > 0)
+        .toList();
     teams.sort((a, b) => a.number.compareTo(b.number));
     if (teams.isEmpty && cached.isNotEmpty) return cached;
     await _cache('israeli_teams_$year',
         teams.map((team) => team.toJson()).toList());
     return teams;
   }
+
+  Future<TbaTeam> teamByNumber(int teamNumber) async {
+    if (teamNumber <= 0) throw ArgumentError.value(teamNumber, 'teamNumber');
+    final result = await _get('/team/frc$teamNumber/simple');
+    return TbaTeam.fromJson(result as Map<String, dynamic>);
+  }
+
+  Future<List<TbaEvent>> israeliDistrictEvents({int year = 2027}) async {
+    final cached = await cachedIsraeliDistrictEvents(year: year);
+    if (!isConfigured) {
+      if (cached.isNotEmpty) return cached;
+      throw Exception('TBA_API_KEY is not configured');
+    }
+
+    final result = await _get('/district/${year}isr/events/simple');
+    final events = (result as List)
+        .map((row) => TbaEvent.fromJson(row as Map<String, dynamic>))
+        .where((event) => event.key.isNotEmpty)
+        .toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    if (events.isEmpty && cached.isNotEmpty) return cached;
+    await _cache(
+      'israeli_district_events_$year',
+      events.map((event) => event.toJson()).toList(),
+    );
+    return events;
+  }
+
+  Future<List<TbaEvent>> cachedIsraeliDistrictEvents({int year = 2027}) async =>
+      (await _readCache('israeli_district_events_$year'))
+          .map(TbaEvent.fromJson)
+          .toList();
 
   Future<List<TbaTeam>> cachedIsraeliTeams({int year = 2027}) async =>
       (await _readCache('israeli_teams_$year'))

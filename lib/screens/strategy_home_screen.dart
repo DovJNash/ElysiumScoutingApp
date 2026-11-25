@@ -76,9 +76,13 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
     super.dispose();
   }
 
-  bool get _canPopApp => !(_tabs.index == 0 && _comp != null);
+  bool get _canPopApp => _tabs.index == 0 && _comp == null;
 
   void _goBack() {
+    if (_tabs.index != 0) {
+      _tabs.animateTo(0);
+      return;
+    }
     setState(() {
       if (_team != null) {
         _team = null;

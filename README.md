@@ -39,7 +39,9 @@ The app is **offline-first**: it works without an internet connection, and syncs
      leader_code = excluded.leader_code;
    ```
    Repeat with unique codes per team; never use the example placeholders as
-   real access codes.
+   real access codes. Keep these values in Supabase's private table or another
+   admin-only store. Do not bundle role-registration codes in app JSON/assets:
+   anyone with the app could read them and register as a Strategy user or Leader.
 4. Put the project's URL and publishable key in `lib/config/supabase_config.dart`
    (Dashboard -> Project Settings -> API). They must belong to the same project
    where you ran the SQL.
@@ -50,9 +52,12 @@ Provide a read API key only at run/build time, never in source control:
 flutter run --dart-define=TBA_API_KEY=YOUR_KEY
 flutter build apk --dart-define=TBA_API_KEY=YOUR_KEY
 ```
-The app caches TBA teams and match schedules locally for offline use.
-Registration loads all Israeli FRC teams for the 2027 season from TBA and shows
-their team avatars. A previously loaded team list remains available offline.
+The app caches TBA teams, district events, and match schedules locally for
+offline use. Registration loads Israeli district teams for 2027 from TBA and
+shows their team avatars. Event team pickers and the schedule competition
+selector use the 2027 Israel district event/roster data from TBA; no event key
+needs to be entered manually. A previously loaded team list remains available
+offline, and signup allows manual team selection if TBA is unavailable.
 
 ### 2. Flutter project
 1. In the project folder run, once:

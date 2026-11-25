@@ -72,6 +72,25 @@ void main() {
       TbaTeam.fromJson(team.toJson()).logoUrl,
       team.logoUrl,
     );
+    expect(
+      TbaTeam.fromJson({
+        'key': 'frc1690',
+        'name': 'Orbit Robotics',
+      }).name,
+      'Orbit Robotics',
+    );
+  });
+
+  test('TBA Israel district event exposes a selectable event key and label',
+      () {
+    final event = TbaEvent.fromJson({
+      'key': '2027isde1',
+      'name': 'ISR District Event #1',
+      'city': 'Tel Aviv-Yafo',
+    });
+
+    expect(event.key, '2027isde1');
+    expect(event.label, 'ISR District Event #1 — Tel Aviv-Yafo');
   });
 
   test('Hebrew is the default and locale switching translates UI text', () async {
@@ -81,7 +100,13 @@ void main() {
     expect(LocaleService.instance.isHebrew, isTrue);
     expect(LocaleService.instance.text('SIGN UP'), 'הרשמה');
 
-    await LocaleService.instance.setLocale(const Locale('en'));
+    var changedImmediately = false;
+    void listener() => changedImmediately = true;
+    LocaleService.instance.addListener(listener);
+    final switching = LocaleService.instance.setLocale(const Locale('en'));
+    expect(changedImmediately, isTrue);
+    await switching;
+    LocaleService.instance.removeListener(listener);
     expect(LocaleService.instance.text('SIGN UP'), 'SIGN UP');
 
     await LocaleService.instance.setLocale(const Locale('he'));
@@ -96,8 +121,16 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(const MaterialApp(home: AuthScreen()));
+    await tester.tap(find.byIcon(Icons.language_rounded));
+    await tester.pump();
+    expect(find.text('הרשמה'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.language_rounded));
+    await tester.pump();
+    expect(find.text('SIGN UP'), findsOneWidget);
+
     await tester.tap(find.text('SIGN UP'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(
       find.text('Can’t load or find your team? Enter it manually'),
@@ -108,10 +141,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).at(1), '1690');
+    await tester.enterText(find.byType(TextField).at(2), 'Orbit');
     await tester.tap(find.text('Continue with this team'));
     await tester.pumpAndSettle();
 
     expect(find.text('What is your role?'), findsOneWidget);
-    expect(find.text('1690 — Team 1690'), findsOneWidget);
+    expect(find.text('1690 - Orbit'), findsOneWidget);
   });
 }
