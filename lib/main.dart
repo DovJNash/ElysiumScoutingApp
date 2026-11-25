@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/supabase_config.dart';
 import 'models/user_model.dart';
@@ -14,6 +15,7 @@ import 'services/locale_service.dart';
 import 'services/pit_scouting_service.dart';
 import 'theme/elysium_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'widgets/localized_text.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,17 +54,21 @@ class FrcScoutingApp extends StatelessWidget {
       title: 'Elysium 1937 Scouting App',
       locale: locale,
       supportedLocales: const [Locale('en'), Locale('he')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: Elysium.theme().copyWith(
         textTheme: locale.languageCode == 'he'
             ? GoogleFonts.assistantTextTheme(Elysium.theme().textTheme)
             : Elysium.theme().textTheme,
       ),
-      // Tap anywhere outside a text field to close the keyboard (the iOS number
-      // pad has no "Done" key, so this is needed on iPhone / iPad).
-      builder: (context, child) => GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-        child: child,
+      builder: (context, child) => Directionality(
+        textDirection: locale.languageCode == 'he'
+            ? TextDirection.rtl
+            : TextDirection.ltr,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
       debugShowCheckedModeBanner: false,
       home: ListenableBuilder(

@@ -31,7 +31,7 @@ class SupabaseConfig {
   }
 
   /// Season used for The Blue Alliance team avatars.
-  static const int season = 2026;
+  static const int season = 2027;
 
   /// If an avatar does not exist the app shows the team number instead.
   static String avatarUrl(int teamNumber, [int? year]) =>

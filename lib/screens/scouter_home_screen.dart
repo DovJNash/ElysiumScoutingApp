@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../models/scouting_entry.dart';
@@ -16,6 +16,7 @@ import '../widgets/sync_status_badge.dart';
 import '../widgets/team_picker.dart';
 import '../services/locale_service.dart';
 import '../widgets/match_schedule_page.dart';
+import '../widgets/localized_text.dart';
 
 class ScouterHomeScreen extends StatefulWidget {
   const ScouterHomeScreen({super.key});
@@ -465,9 +466,9 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
               keyboardType: TextInputType.number,
               textInputAction: TextInputAction.done,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: 'Match Number',
-                hintText: 'e.g., 14',
+              decoration: InputDecoration(
+                labelText: LocaleService.instance.text('Match Number'),
+                hintText: LocaleService.instance.text('e.g., 14'),
                 prefixIcon: Icon(Icons.tag_rounded),
               ),
             ),
@@ -562,9 +563,10 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
             TextField(
               controller: _notesController,
               maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'General Notes',
-                hintText: 'Mechanical issues, penalties, endgame, cycle notes...',
+              decoration: InputDecoration(
+                labelText: LocaleService.instance.text('General Notes'),
+                hintText: LocaleService.instance
+                    .text('Mechanical issues, penalties, endgame, cycle notes...'),
                 alignLabelWithHint: true,
               ),
             ),

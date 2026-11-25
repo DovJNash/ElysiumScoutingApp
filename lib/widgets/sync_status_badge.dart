@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import '../services/sync_service.dart';
 import '../theme/elysium_theme.dart';
+import 'localized_text.dart';
 
 /// Small status pill for the blue app bar:
 /// Live / Syncing / Offline / Sync problem. Tap = sync now (and, when there is

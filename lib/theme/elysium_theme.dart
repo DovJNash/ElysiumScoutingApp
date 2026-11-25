@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
+import '../widgets/localized_text.dart';
 
 extension ColorAlpha on Color {
   /// Opacity helper that works on every Flutter version (no deprecations).

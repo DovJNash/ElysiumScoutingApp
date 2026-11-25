@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'dart:math';
 import '../models/scouting_entry.dart';
 import '../models/super_scouting_entry.dart';
@@ -18,6 +18,7 @@ import '../models/pit_scouting_entry.dart';
 import '../services/pit_scouting_service.dart';
 import '../widgets/team_picker.dart';
 import 'package:uuid/uuid.dart';
+import '../widgets/localized_text.dart';
 
 class LeaderHomeScreen extends StatefulWidget {
   const LeaderHomeScreen({super.key});
@@ -56,19 +57,24 @@ class _LeaderHomeScreenState extends State<LeaderHomeScreen> {
           children: [
             TextField(
               controller: idController,
-              decoration: const InputDecoration(labelText: 'Competition ID'),
+              decoration: InputDecoration(
+                labelText: LocaleService.instance.text('Competition ID'),
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Competition name'),
+              decoration: InputDecoration(
+                labelText: LocaleService.instance.text('Competition name'),
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: teamsController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Existing team numbers',
+              decoration: InputDecoration(
+                labelText:
+                    LocaleService.instance.text('Existing team numbers'),
                 hintText: '1937,1690,1574',
               ),
             ),
@@ -393,7 +399,7 @@ class _LeaderPitTabState extends State<_LeaderPitTab> {
                 maxLines: 4,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
-                  labelText: field.$2,
+                  labelText: LocaleService.instance.text(field.$2),
                   alignLabelWithHint: true,
                 ),
               ),

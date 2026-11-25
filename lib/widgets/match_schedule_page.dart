@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../services/locale_service.dart';
 
 import '../models/team_model.dart';
 import '../services/tba_service.dart';
 import '../theme/elysium_theme.dart';
+import 'localized_text.dart';
 
 class MatchSchedulePage extends StatefulWidget {
   const MatchSchedulePage({super.key});
@@ -95,9 +97,9 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
               Expanded(
                 child: TextField(
                   controller: _eventKey,
-                  decoration: const InputDecoration(
-                    labelText: 'TBA event key',
-                    hintText: 'e.g. 2025isde1',
+                  decoration: InputDecoration(
+                    labelText: LocaleService.instance.text('TBA event key'),
+                    hintText: LocaleService.instance.text('e.g. 2025isde1'),
                   ),
                 ),
               ),

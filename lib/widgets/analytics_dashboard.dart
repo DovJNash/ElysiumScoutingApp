@@ -1,12 +1,13 @@
 import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import '../models/team_model.dart';
 import '../services/analytics_service.dart';
 import '../services/data_repository.dart';
 import '../theme/elysium_theme.dart';
 import 'entry_detail_dialog.dart';
 import 'team_picker.dart';
+import 'localized_text.dart';
 
 /// Live analytics used by Strategy (Data tab) and Leader (Data tab).
 /// If [fixedCompetition] is given, the dashboard follows it and hides its own

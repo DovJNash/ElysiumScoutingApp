@@ -31,6 +31,13 @@ class TeamInfo {
         name: 'Team $number',
         logoUrl: SupabaseConfig.avatarUrl(number),
       );
+
+  factory TeamInfo.fromTba({
+    required int number,
+    required String name,
+    required String logoUrl,
+  }) =>
+      TeamInfo(number: number, name: name, logoUrl: logoUrl);
 }
 
 class CompetitionInfo {
