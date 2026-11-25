@@ -40,6 +40,16 @@ class LocaleService extends ChangeNotifier {
     'Israeli FRC teams — 2027 season': 'קבוצות FRC בישראל — עונת 2027',
     'Loading teams...': 'טוען קבוצות...',
     'No teams found. Try again later.': 'לא נמצאו קבוצות. נסו שוב מאוחר יותר.',
+    'Team number': 'מספר קבוצה',
+    'Team name': 'שם הקבוצה',
+    'Team name (optional)': 'שם הקבוצה (לא חובה)',
+    'Enter a valid team number.': 'יש להזין מספר קבוצה תקין.',
+    'Continue with this team': 'המשך עם הקבוצה הזו',
+    'Back to team list': 'חזרה לרשימת הקבוצות',
+    'Can’t load or find your team? Enter it manually':
+        'הקבוצה לא נטענת או לא נמצאה? הזן אותה ידנית',
+    'e.g. 1937': 'לדוגמה, 1937',
+    'e.g. Elysium': 'לדוגמה, אליסיום',
     'Could not load the 2027 Israeli team list. Check the TBA API key and internet connection.':
         'טעינת רשימת הקבוצות בישראל נכשלה. יש לבדוק חיבור לאינטרנט ואת מפתח TBA.',
     'Access your scouting, strategy or lead console':

@@ -23,11 +23,14 @@ class _AuthScreenState extends State<AuthScreen> {
   List<TbaTeam> _israeliTeams = [];
   TbaTeam? _selectedTeam;
   bool _loadingTeams = false;
+  bool _manualTeamEntry = false;
   String _teamQuery = '';
 
   final _name = TextEditingController();
   final _password = TextEditingController();
   final _code = TextEditingController();
+  final _manualTeamNumber = TextEditingController();
+  final _manualTeamName = TextEditingController();
   bool _loading = false;
   String? _error;
 
@@ -36,6 +39,8 @@ class _AuthScreenState extends State<AuthScreen> {
     _name.dispose();
     _password.dispose();
     _code.dispose();
+    _manualTeamNumber.dispose();
+    _manualTeamName.dispose();
     super.dispose();
   }
 
@@ -76,6 +81,9 @@ class _AuthScreenState extends State<AuthScreen> {
       _loadingTeams = true;
       _error = null;
       _selectedTeam = null;
+      _manualTeamEntry = false;
+      _manualTeamNumber.clear();
+      _manualTeamName.clear();
       _teamQuery = '';
       _view = _AuthView.teamSelect;
     });
@@ -95,6 +103,25 @@ class _AuthScreenState extends State<AuthScreen> {
     } finally {
       if (mounted) setState(() => _loadingTeams = false);
     }
+  }
+
+  void _selectManualTeam() {
+    final number = int.tryParse(_manualTeamNumber.text.trim());
+    final name = _manualTeamName.text.trim();
+    if (number == null || number <= 0) {
+      setState(() => _error = 'Enter a valid team number.');
+      return;
+    }
+
+    setState(() {
+      _selectedTeam = TbaTeam(
+        number: number,
+        name: name.isEmpty ? 'Team $number' : name,
+        logoUrl: 'https://www.thebluealliance.com/avatar/2027/frc$number.png',
+      );
+      _error = null;
+      _view = _AuthView.roleSelect;
+    });
   }
 
   @override
@@ -279,39 +306,94 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           ),
         if (_loadingTeams) const LinearProgressIndicator(),
-        Expanded(
-          child: filtered.isEmpty
-              ? Center(
-                  child: Text(_loadingTeams
-                      ? 'Loading teams...'
-                      : 'No teams found. Try again later.'),
-                )
-              : ListView.builder(
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) {
-                    final team = filtered[index];
-                    final teamInfo = TeamInfo.fromTba(
-                      number: team.number,
-                      name: team.name,
-                      logoUrl: team.logoUrl,
-                    );
-                    return Card(
-                      child: ListTile(
-                        leading: TeamLogo(team: teamInfo, size: 44),
-                        title: Text('${team.number} — ${team.name}'),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () {
-                          setState(() {
-                            _selectedTeam = team;
-                            _error = null;
-                            _view = _AuthView.roleSelect;
-                          });
-                        },
-                      ),
-                    );
-                  },
-                ),
-        ),
+        if (_manualTeamEntry)
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(top: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _manualTeamNumber,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: LocaleService.instance.text('Team number'),
+                      hintText: 'e.g. 1937',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _manualTeamName,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: InputDecoration(
+                      labelText:
+                          LocaleService.instance.text('Team name (optional)'),
+                      hintText: 'e.g. Elysium',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: _selectManualTeam,
+                    icon: const Icon(Icons.arrow_forward_rounded),
+                    label: const Text('Continue with this team'),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() {
+                      _manualTeamEntry = false;
+                      _error = null;
+                    }),
+                    child: const Text('Back to team list'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        if (!_manualTeamEntry) ...[
+          Expanded(
+            child: filtered.isEmpty
+                ? Center(
+                    child: Text(_loadingTeams
+                        ? 'Loading teams...'
+                        : 'No teams found. Try again later.'),
+                  )
+                : ListView.builder(
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final team = filtered[index];
+                      final teamInfo = TeamInfo.fromTba(
+                        number: team.number,
+                        name: team.name,
+                        logoUrl: team.logoUrl,
+                      );
+                      return Card(
+                        child: ListTile(
+                          leading: TeamLogo(team: teamInfo, size: 44),
+                          title: Text('${team.number} — ${team.name}'),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () {
+                            setState(() {
+                              _selectedTeam = team;
+                              _error = null;
+                              _view = _AuthView.roleSelect;
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => setState(() {
+              _manualTeamEntry = true;
+              _error = null;
+            }),
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text(
+              'Can’t load or find your team? Enter it manually',
+            ),
+          ),
+        ],
       ],
     );
   }
