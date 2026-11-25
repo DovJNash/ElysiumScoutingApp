@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:uuid/uuid.dart';
 import '../models/scouting_form_config.dart';
 import '../models/super_scouting_entry.dart';
@@ -17,6 +17,7 @@ import '../widgets/match_schedule_page.dart';
 import '../models/pit_scouting_entry.dart';
 import '../services/pit_scouting_service.dart';
 import 'scouter_home_screen.dart';
+import '../widgets/localized_text.dart';
 
 class StrategyHomeScreen extends StatefulWidget {
   const StrategyHomeScreen({super.key});
@@ -346,8 +347,8 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
                       maxLines: 4,
                       textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
-                        labelText: field.$2,
-                        hintText: field.$3,
+                        labelText: LocaleService.instance.text(field.$2),
+                        hintText: LocaleService.instance.text(field.$3),
                         alignLabelWithHint: true,
                       ),
                     ),
@@ -441,8 +442,8 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
                       maxLines: f.maxLines,
                       textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
-                        labelText: f.label,
-                        hintText: f.hint,
+                        labelText: LocaleService.instance.text(f.label),
+                        hintText: LocaleService.instance.text(f.hint),
                         alignLabelWithHint: true,
                       ),
                     ),

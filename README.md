@@ -12,8 +12,34 @@ The app is **offline-first**: it works without an internet connection, and syncs
    or the list is shorter, the setup did not finish.
 2. Left-over tables from older versions? Run `supabase_reset.sql` first
    (it deletes all data/accounts), then run `supabase_setup.sql` again.
-3. Change the two sign-up codes inside `app_signup` (`ELYSIUM-LEAD-1937`,
-   `ELYSIUM-STRAT-1937`) before you give the app to the team.
+3. There is no team access code for Scouter registration. For each team's
+   Strategy and Leader registrations, add that team's distinct codes to the
+   private `team_role_codes` table (and add the team to `team_catalog`):
+   ```sql
+   insert into public.team_catalog(team_number, team_name)
+   values (1690, 'Orbit')
+   on conflict (team_number) do update set team_name = excluded.team_name;
+
+   insert into public.team_role_codes(team_number, strategy_code, leader_code)
+   values (1690, 'TEAM_1690_STRATEGY_CODE', 'TEAM_1690_LEADER_CODE')
+   on conflict (team_number) do update set
+     strategy_code = excluded.strategy_code,
+     leader_code = excluded.leader_code;
+   ```
+   For example, to configure Team 1937:
+   ```sql
+   insert into public.team_catalog(team_number, team_name)
+   values (1937, 'Elysium')
+   on conflict (team_number) do update set team_name = excluded.team_name;
+
+   insert into public.team_role_codes(team_number, strategy_code, leader_code)
+   values (1937, 'TEAM_1937_STRATEGY_CODE', 'TEAM_1937_LEADER_CODE')
+   on conflict (team_number) do update set
+     strategy_code = excluded.strategy_code,
+     leader_code = excluded.leader_code;
+   ```
+   Repeat with unique codes per team; never use the example placeholders as
+   real access codes.
 4. Put the project's URL and publishable key in `lib/config/supabase_config.dart`
    (Dashboard -> Project Settings -> API). They must belong to the same project
    where you ran the SQL.
@@ -25,6 +51,8 @@ flutter run --dart-define=TBA_API_KEY=YOUR_KEY
 flutter build apk --dart-define=TBA_API_KEY=YOUR_KEY
 ```
 The app caches TBA teams and match schedules locally for offline use.
+Registration loads all Israeli FRC teams for the 2027 season from TBA and shows
+their team avatars. A previously loaded team list remains available offline.
 
 ### 2. Flutter project
 1. In the project folder run, once:

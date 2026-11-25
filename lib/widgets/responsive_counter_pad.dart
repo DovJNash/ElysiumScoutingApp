@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 import '../theme/elysium_theme.dart';
+import 'localized_text.dart';
 
 /// Two-tier counter: big -1 / +1 on top, batch -50 -10 +10 +50 below.
 /// Clamped to 0..9999 with haptic feedback.

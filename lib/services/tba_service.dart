@@ -6,8 +6,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 class TbaTeam {
   final int number;
   final String name;
+  final String country;
+  final String logoUrl;
 
-  const TbaTeam({required this.number, required this.name});
+  const TbaTeam({
+    required this.number,
+    required this.name,
+    this.country = '',
+    this.logoUrl = '',
+  });
 
   factory TbaTeam.fromJson(Map<String, dynamic> json) {
     final key = json['key']?.toString() ?? '';
@@ -15,8 +22,18 @@ class TbaTeam {
     return TbaTeam(
       number: number,
       name: json['nickname']?.toString() ?? 'Team $number',
+      country: json['country']?.toString() ?? '',
+      logoUrl: json['logoUrl']?.toString() ??
+          'https://www.thebluealliance.com/avatar/2027/frc$number.png',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'key': 'frc$number',
+        'nickname': name,
+        'country': country,
+        'logoUrl': logoUrl,
+      };
 }
 
 class TbaMatch {
@@ -131,6 +148,36 @@ class TbaService {
         .toList());
     return list;
   }
+
+  Future<List<TbaTeam>> israeliTeams({int year = 2027}) async {
+    final cached = await cachedIsraeliTeams(year: year);
+    if (!isConfigured) {
+      if (cached.isNotEmpty) return cached;
+      throw Exception('TBA_API_KEY is not configured');
+    }
+
+    final teams = <TbaTeam>[];
+    for (var page = 0; page < 20; page++) {
+      final result = await _get('/teams/$year/$page');
+      final pageTeams = (result as List)
+          .map((row) => TbaTeam.fromJson(row as Map<String, dynamic>))
+          .toList();
+      teams.addAll(pageTeams.where(
+        (team) => team.number > 0 && team.country.toLowerCase() == 'israel',
+      ));
+      if (pageTeams.length < 500) break;
+    }
+    teams.sort((a, b) => a.number.compareTo(b.number));
+    if (teams.isEmpty && cached.isNotEmpty) return cached;
+    await _cache('israeli_teams_$year',
+        teams.map((team) => team.toJson()).toList());
+    return teams;
+  }
+
+  Future<List<TbaTeam>> cachedIsraeliTeams({int year = 2027}) async =>
+      (await _readCache('israeli_teams_$year'))
+          .map(TbaTeam.fromJson)
+          .toList();
 
   Future<List<TbaMatch>> matchesAtEvent(String eventKey) async {
     final result = await _get('/event/$eventKey/matches/simple');

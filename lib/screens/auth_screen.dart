@@ -1,11 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/material.dart' hide Text;
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/locale_service.dart';
+import '../services/tba_service.dart';
 import '../theme/elysium_theme.dart';
+import '../models/team_model.dart';
+import '../widgets/team_picker.dart';
+import '../widgets/localized_text.dart';
 
-enum _AuthView { splitChoice, loginForm, roleSelect, signUpForm }
+enum _AuthView { splitChoice, loginForm, teamSelect, roleSelect, signUpForm }
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -17,12 +20,14 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   _AuthView _view = _AuthView.splitChoice;
   String _role = UserRole.scouter;
+  List<TbaTeam> _israeliTeams = [];
+  TbaTeam? _selectedTeam;
+  bool _loadingTeams = false;
+  String _teamQuery = '';
 
   final _name = TextEditingController();
   final _password = TextEditingController();
   final _code = TextEditingController();
-  final _teamNumber = TextEditingController();
-  final _teamCode = TextEditingController();
   bool _loading = false;
   String? _error;
 
@@ -31,8 +36,6 @@ class _AuthScreenState extends State<AuthScreen> {
     _name.dispose();
     _password.dispose();
     _code.dispose();
-    _teamNumber.dispose();
-    _teamCode.dispose();
     super.dispose();
   }
 
@@ -49,9 +52,9 @@ class _AuthScreenState extends State<AuthScreen> {
           name: _name.text,
           password: _password.text,
           role: _role,
-          accessCode: _code.text,
-          teamNumber: int.tryParse(_teamNumber.text.trim()) ?? 0,
-          teamAccessCode: _teamCode.text,
+          roleAccessCode: _code.text,
+          teamNumber: _selectedTeam!.number,
+          teamName: _selectedTeam!.name,
         );
       }
     } catch (e) {
@@ -68,6 +71,32 @@ class _AuthScreenState extends State<AuthScreen> {
         _view = v;
       });
 
+  Future<void> _openRegistration() async {
+    setState(() {
+      _loadingTeams = true;
+      _error = null;
+      _selectedTeam = null;
+      _teamQuery = '';
+      _view = _AuthView.teamSelect;
+    });
+    try {
+      final teams = await TbaService.instance.israeliTeams(year: 2027);
+      if (mounted) setState(() => _israeliTeams = teams);
+    } catch (e) {
+      final cached = await TbaService.instance.cachedIsraeliTeams(year: 2027);
+      if (mounted) {
+        setState(() {
+          _israeliTeams = cached;
+          _error = cached.isEmpty
+              ? 'Could not load the 2027 Israeli team list. Check the TBA API key and internet connection.'
+              : null;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _loadingTeams = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final atRoot = _view == _AuthView.splitChoice;
@@ -75,9 +104,14 @@ class _AuthScreenState extends State<AuthScreen> {
       canPop: atRoot,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        _go(_view == _AuthView.signUpForm
-            ? _AuthView.roleSelect
-            : _AuthView.splitChoice);
+        if (_view == _AuthView.signUpForm) {
+          _go(_AuthView.roleSelect);
+        } else if (_view == _AuthView.roleSelect &&
+            _selectedTeam != null) {
+          _go(_AuthView.teamSelect);
+        } else {
+          _go(_AuthView.splitChoice);
+        }
       },
       child: Scaffold(
         body: Column(
@@ -156,6 +190,8 @@ class _AuthScreenState extends State<AuthScreen> {
         return _split();
       case _AuthView.roleSelect:
         return _roleSelect();
+      case _AuthView.teamSelect:
+        return _teamSelect();
       case _AuthView.loginForm:
         return _credentials(false);
       case _AuthView.signUpForm:
@@ -184,8 +220,97 @@ class _AuthScreenState extends State<AuthScreen> {
             subtitle: 'Create an account and choose your team role',
             icon: Icons.person_add_alt_1_rounded,
             color: Elysium.navy,
-            onTap: () => _go(_AuthView.roleSelect),
+            onTap: _openRegistration,
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _teamSelect() {
+    final query = _teamQuery.trim().toLowerCase();
+    final filtered = _israeliTeams
+        .where((team) =>
+            query.isEmpty ||
+            team.number.toString().contains(query) ||
+            team.name.toLowerCase().contains(query))
+        .toList();
+
+    return Column(
+      key: const ValueKey('teams'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            IconButton(
+              onPressed: () => _go(_AuthView.splitChoice),
+              icon: const Icon(Icons.arrow_back_rounded),
+            ),
+            const Expanded(
+              child: Text(
+                'Choose your team',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+              ),
+            ),
+            const SizedBox(width: 48),
+          ],
+        ),
+        const Text(
+          'Israeli FRC teams — 2027 season',
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          onChanged: (value) => setState(() => _teamQuery = value),
+          decoration: InputDecoration(
+            hintText: LocaleService.instance.text('Search team number or name'),
+            prefixIcon: const Icon(Icons.search_rounded),
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Elysium.danger),
+            ),
+          ),
+        if (_loadingTeams) const LinearProgressIndicator(),
+        Expanded(
+          child: filtered.isEmpty
+              ? Center(
+                  child: Text(_loadingTeams
+                      ? 'Loading teams...'
+                      : 'No teams found. Try again later.'),
+                )
+              : ListView.builder(
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final team = filtered[index];
+                    final teamInfo = TeamInfo.fromTba(
+                      number: team.number,
+                      name: team.name,
+                      logoUrl: team.logoUrl,
+                    );
+                    return Card(
+                      child: ListTile(
+                        leading: TeamLogo(team: teamInfo, size: 44),
+                        title: Text('${team.number} — ${team.name}'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () {
+                          setState(() {
+                            _selectedTeam = team;
+                            _error = null;
+                            _view = _AuthView.roleSelect;
+                          });
+                        },
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -206,7 +331,11 @@ class _AuthScreenState extends State<AuthScreen> {
         Row(
           children: [
             IconButton(
-              onPressed: () => _go(_AuthView.splitChoice),
+              onPressed: () => _go(
+                _selectedTeam == null
+                    ? _AuthView.splitChoice
+                    : _AuthView.teamSelect,
+              ),
               icon: const Icon(Icons.arrow_back_rounded),
             ),
             const Expanded(
@@ -217,6 +346,27 @@ class _AuthScreenState extends State<AuthScreen> {
             const SizedBox(width: 48),
           ],
         ),
+        if (_selectedTeam != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TeamLogo(
+                team: TeamInfo.fromTba(
+                  number: _selectedTeam!.number,
+                  name: _selectedTeam!.name,
+                  logoUrl: _selectedTeam!.logoUrl,
+                ),
+                size: 32,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${_selectedTeam!.number} — ${_selectedTeam!.name}',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 10),
         Expanded(
           child: LayoutBuilder(builder: (context, c) {
@@ -252,6 +402,7 @@ class _AuthScreenState extends State<AuthScreen> {
               if (i > 0) spaced.add(const SizedBox(width: 10, height: 10));
               spaced.add(Expanded(child: panels[i]));
             }
+
             return compact
                 ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: spaced)
                 : Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: spaced);
@@ -296,8 +447,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 TextField(
                   controller: _name,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
+                  decoration: InputDecoration(
+                    labelText: LocaleService.instance.text('Name'),
                     prefixIcon: Icon(Icons.person_outline_rounded),
                   ),
                 ),
@@ -305,33 +456,36 @@ class _AuthScreenState extends State<AuthScreen> {
                 TextField(
                   controller: _password,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
+                  decoration: InputDecoration(
+                    labelText: LocaleService.instance.text('Password'),
                     prefixIcon: Icon(Icons.lock_outline_rounded),
                   ),
                   onSubmitted: (_) => _loading ? null : _submit(),
                 ),
-                if (isSignUp) ...[
+                if (isSignUp && _selectedTeam != null) ...[
                   const SizedBox(height: 14),
-                  TextField(
-                    controller: _teamNumber,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
+                  Row(
+                    children: [
+                      TeamLogo(
+                        team: TeamInfo.fromTba(
+                          number: _selectedTeam!.number,
+                          name: _selectedTeam!.name,
+                          logoUrl: _selectedTeam!.logoUrl,
+                        ),
+                        size: 40,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '${_selectedTeam!.number} — ${_selectedTeam!.name}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _openRegistration,
+                        child: const Text('Change'),
+                      ),
                     ],
-                    decoration: const InputDecoration(
-                      labelText: 'Team number',
-                      prefixIcon: Icon(Icons.groups_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: _teamCode,
-                    decoration: const InputDecoration(
-                      labelText: 'Team access code',
-                      helperText: 'Use the code issued to your team',
-                      prefixIcon: Icon(Icons.key_rounded),
-                    ),
                   ),
                 ],
                 if (needsCode) ...[
@@ -339,8 +493,10 @@ class _AuthScreenState extends State<AuthScreen> {
                   TextField(
                     controller: _code,
                     decoration: InputDecoration(
-                      labelText: '$_role access code',
-                      helperText: 'Ask your team lead for this code',
+                      labelText:
+                          LocaleService.instance.text('$_role access code'),
+                      helperText: LocaleService.instance.text(
+                          'Ask your team lead for the code for this team'),
                       prefixIcon: const Icon(Icons.vpn_key_outlined),
                     ),
                   ),

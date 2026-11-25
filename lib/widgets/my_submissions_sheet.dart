@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import '../models/scouting_entry.dart';
 import '../models/super_scouting_entry.dart';
 import '../services/auth_service.dart';
@@ -6,6 +6,7 @@ import '../services/data_repository.dart';
 import '../services/sync_service.dart';
 import '../theme/elysium_theme.dart';
 import 'entry_detail_dialog.dart';
+import 'localized_text.dart';
 
 /// Bottom sheet listing ONLY the current user's own forms, with delete.
 /// superMode = false -> Scouting forms (Scouter), true -> Super Scouting (Strategy).

@@ -1,6 +1,7 @@
 drop table if exists public.pit_scouting cascade;
 drop table if exists public.match_schedules cascade;
 drop table if exists public.competitions cascade;
+drop table if exists public.team_role_codes cascade;
 drop table if exists public.team_catalog cascade;
 drop table if exists public.super_scouting cascade;
 drop table if exists public.scouting cascade;

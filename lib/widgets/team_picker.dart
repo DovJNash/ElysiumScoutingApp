@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
 import '../config/supabase_config.dart';
 import '../models/team_model.dart';
+import '../services/locale_service.dart';
 import '../theme/elysium_theme.dart';
+import 'localized_text.dart';
 
 class TeamLogo extends StatelessWidget {
   final TeamInfo team;
@@ -163,10 +165,11 @@ class _TeamPickerState extends State<TeamPicker> {
                 padding: const EdgeInsets.only(left: 8),
                 child: TextField(
                   onChanged: (v) => setState(() => _query = v),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     isDense: true,
-                    hintText: 'Search team number or name',
-                    prefixIcon: Icon(Icons.search_rounded),
+                    hintText: LocaleService.instance
+                        .text('Search team number or name'),
+                    prefixIcon: const Icon(Icons.search_rounded),
                   ),
                 ),
               ),

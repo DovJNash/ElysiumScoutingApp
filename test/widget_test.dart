@@ -1,7 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:frc_scouting_app/models/pit_scouting_entry.dart';
 import 'package:frc_scouting_app/models/user_model.dart';
+import 'package:frc_scouting_app/services/locale_service.dart';
 import 'package:frc_scouting_app/services/tba_service.dart';
 
 void main() {
@@ -52,5 +55,35 @@ void main() {
     expect(match.blueTeams, [1574, 5987]);
     expect(match.redScore, 120);
     expect(match.blueScore, 105);
+  });
+
+  test('TBA team keeps country and season avatar data for registration', () {
+    final team = TbaTeam.fromJson({
+      'key': 'frc1937',
+      'nickname': 'Elysium',
+      'country': 'Israel',
+    });
+
+    expect(team.number, 1937);
+    expect(team.country, 'Israel');
+    expect(team.logoUrl, contains('/avatar/2027/frc1937.png'));
+    expect(
+      TbaTeam.fromJson(team.toJson()).logoUrl,
+      team.logoUrl,
+    );
+  });
+
+  test('Hebrew is the default and locale switching translates UI text', () async {
+    SharedPreferences.setMockInitialValues({});
+    await LocaleService.instance.initialize();
+
+    expect(LocaleService.instance.isHebrew, isTrue);
+    expect(LocaleService.instance.text('SIGN UP'), 'הרשמה');
+
+    await LocaleService.instance.setLocale(const Locale('en'));
+    expect(LocaleService.instance.text('SIGN UP'), 'SIGN UP');
+
+    await LocaleService.instance.setLocale(const Locale('he'));
+    expect(LocaleService.instance.text('SIGN UP'), 'הרשמה');
   });
 }

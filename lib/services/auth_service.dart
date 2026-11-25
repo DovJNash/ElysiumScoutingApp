@@ -21,15 +21,6 @@ class AuthService extends ChangeNotifier {
 
   SupabaseClient get _supabase => Supabase.instance.client;
 
-  bool _isNetworkError(Object e) {
-    final text = e.toString();
-    return e is TimeoutException ||
-        text.contains('SocketException') ||
-        text.contains('ClientException') ||
-        text.contains('Failed host lookup') ||
-        text.contains('XMLHttpRequest');
-  }
-
   Future<void> restoreSession() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_prefsKey);
@@ -147,9 +138,9 @@ class AuthService extends ChangeNotifier {
     required String name,
     required String password,
     required String role,
-    String accessCode = '',
+    String roleAccessCode = '',
     int teamNumber = 0,
-    String teamAccessCode = '',
+    String teamName = '',
   }) async {
     if (name.trim().isEmpty || password.isEmpty) {
       throw Exception('Name and password cannot be empty.');
@@ -160,9 +151,9 @@ class AuthService extends ChangeNotifier {
         'p_name': name.trim(),
         'p_password': password, // plain text, per your specification
         'p_role': UserRole.normalize(role),
-        'p_code': accessCode.trim(),
+        'p_code': roleAccessCode.trim(),
         'p_team_number': teamNumber,
-        'p_team_code': teamAccessCode.trim(),
+        'p_team_name': teamName.trim(),
       }).timeout(const Duration(seconds: 20));
       final rows = List<Map<String, dynamic>>.from(res as List);
       if (rows.isEmpty) throw Exception('Sign up failed. Please try again.');
@@ -171,20 +162,6 @@ class AuthService extends ChangeNotifier {
       await _saveSession(user);
       return user;
     } catch (e) {
-      if (_isNetworkError(e) &&
-          teamNumber > 0 &&
-          teamAccessCode.trim().isNotEmpty) {
-        final offline = UserModel(
-          id: const Uuid().v4(),
-          name: name.trim(),
-          role: UserRole.normalize(role),
-          teamNumber: teamNumber,
-          teamName: 'Team $teamNumber',
-        );
-        await _saveCredential(name: name, password: password);
-        await _saveSession(offline);
-        return offline;
-      }
       throw Exception(_friendly(e));
     }
   }
