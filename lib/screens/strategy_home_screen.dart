@@ -12,6 +12,11 @@ import '../widgets/entry_detail_dialog.dart';
 import '../widgets/my_submissions_sheet.dart';
 import '../widgets/sync_status_badge.dart';
 import '../widgets/team_picker.dart';
+import '../services/locale_service.dart';
+import '../widgets/match_schedule_page.dart';
+import '../models/pit_scouting_entry.dart';
+import '../services/pit_scouting_service.dart';
+import 'scouter_home_screen.dart';
 
 class StrategyHomeScreen extends StatefulWidget {
   const StrategyHomeScreen({super.key});
@@ -30,6 +35,18 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
   DateTime? _startedAt;
   bool _submitting = false;
 
+  CompetitionInfo? _pitComp;
+  TeamInfo? _pitTeam;
+  DateTime? _pitStartedAt;
+  bool _pitSubmitting = false;
+  final Map<String, TextEditingController> _pit = {
+    'autonomous': TextEditingController(),
+    'strengths': TextEditingController(),
+    'difficulties': TextEditingController(),
+    'defense': TextEditingController(),
+    'notes': TextEditingController(),
+  };
+
   final Map<String, TextEditingController> _c = {
     for (final f in SuperScoutingFormConfig.fields) f.key: TextEditingController()
   };
@@ -37,7 +54,7 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this)
+    _tabs = TabController(length: 4, vsync: this)
       ..addListener(() {
         if (!_tabs.indexIsChanging) setState(() {});
       });
@@ -50,6 +67,9 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
   void dispose() {
     _tabs.dispose();
     for (final c in _c.values) {
+      c.dispose();
+    }
+    for (final c in _pit.values) {
       c.dispose();
     }
     super.dispose();
@@ -150,6 +170,16 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
         appBar: AppBar(
           title: ElysiumAppBarTitle('Strategy • ${user.name}'),
           actions: [
+            const LocaleSwitchButton(),
+            IconButton(
+              tooltip: 'Match Scouting',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const ScouterHomeScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.assignment_rounded),
+            ),
             const SyncStatusBadge(),
             IconButton(
               tooltip: 'My Reports',
@@ -171,14 +201,171 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
             tabs: const [
               Tab(icon: Icon(Icons.assignment_ind_rounded), text: 'Super Scouting'),
               Tab(icon: Icon(Icons.bar_chart_rounded), text: 'Data'),
+              Tab(icon: Icon(Icons.calendar_month_rounded), text: 'Schedule'),
+              Tab(icon: Icon(Icons.handyman_rounded), text: 'Pit Scouting'),
             ],
           ),
         ),
         body: TabBarView(
           controller: _tabs,
-          children: [_superTab(), const AnalyticsDashboard()],
+          children: [
+            _superTab(),
+            const AnalyticsDashboard(),
+            const MatchSchedulePage(),
+            _pitTab(),
+          ],
         ),
       ),
+    );
+  }
+
+  Future<void> _submitPit() async {
+    if (_pitSubmitting || _pitComp == null || _pitTeam == null) return;
+    final user = AuthService.instance.currentUser!;
+    setState(() => _pitSubmitting = true);
+    final duration = _pitStartedAt == null
+        ? 90
+        : DateTime.now().difference(_pitStartedAt!).inSeconds.clamp(5, 3600);
+    final entry = PitScoutingEntry(
+      id: const Uuid().v4(),
+      uniqueKey: PitScoutingEntry.buildUniqueKey(
+        competition: _pitComp!.id,
+        teamNum: _pitTeam!.number,
+        scouterId: user.id,
+      ),
+      competition: _pitComp!.id,
+      scouterId: user.id,
+      scouterName: user.name,
+      teamNum: _pitTeam!.number,
+      autonomousTypes: _pit['autonomous']!.text.trim(),
+      strengths: _pit['strengths']!.text.trim(),
+      difficulties: _pit['difficulties']!.text.trim(),
+      defense: _pit['defense']!.text.trim(),
+      otherNotes: _pit['notes']!.text.trim(),
+      durationSeconds: duration,
+      createdAt: DateTime.now().toUtc().toIso8601String(),
+      isSynced: false,
+    );
+    await PitScoutingService.instance.submit(entry);
+    if (!mounted) return;
+    for (final controller in _pit.values) {
+      controller.clear();
+    }
+    setState(() {
+      _pitSubmitting = false;
+      _pitTeam = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pit scouting saved locally and synced when available')),
+    );
+  }
+
+  Widget _pitTab() {
+    if (_competitions.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_pitComp == null) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const SectionTitle('Select Competition for Pit Scouting'),
+          const SizedBox(height: 14),
+          ..._competitions.map((competition) => ElysiumCard(
+                margin: const EdgeInsets.only(bottom: 10),
+                child: ListTile(
+                  title: Text(competition.name,
+                      style: const TextStyle(fontWeight: FontWeight.w800)),
+                  subtitle: Text('${competition.teams.length} teams'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () =>
+                      setState(() => _pitComp = competition),
+                ),
+              )),
+        ],
+      );
+    }
+    if (_pitTeam == null) {
+      return TeamPicker(
+        competition: _pitComp!,
+        accent: Elysium.primary,
+        onBack: () => setState(() => _pitComp = null),
+        onSelected: (team) => setState(() {
+          for (final controller in _pit.values) {
+            controller.clear();
+          }
+          _pitTeam = team;
+          _pitStartedAt = DateTime.now();
+        }),
+      );
+    }
+    final team = _pitTeam!;
+    final fields = [
+      ('autonomous', 'Autonomous types',
+          'Describe the robot autonomous routines and reliability'),
+      ('strengths', 'What the team does well',
+          'Describe its strongest scoring, cycling or defense capabilities'),
+      ('difficulties', 'What is difficult for the team',
+          'Describe weaknesses, limitations and failure points'),
+      ('defense', 'How the team plays defense',
+          'Describe defensive style, pressure and reliability'),
+      ('notes', 'How is the team different',
+          'Anything else that makes this robot distinct'),
+    ];
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: const BoxDecoration(
+            color: Elysium.surface,
+            border: Border(bottom: BorderSide(color: Elysium.border)),
+          ),
+          child: Row(
+            children: [
+              TextButton.icon(
+                onPressed: () => setState(() => _pitTeam = null),
+                icon: const Icon(Icons.arrow_back_rounded),
+                label: const Text('Back'),
+              ),
+              TeamLogo(team: team, size: 32),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('Pit scouting • Team ${team.number}',
+                    style: const TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              ...fields.map((field) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: TextField(
+                      controller: _pit[field.$1],
+                      maxLines: 4,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        labelText: field.$2,
+                        hintText: field.$3,
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                  )),
+              SizedBox(
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: _pitSubmitting ? null : _submitPit,
+                  icon: const Icon(Icons.cloud_upload_rounded),
+                  label: Text(_pitSubmitting
+                      ? 'Submitting...'
+                      : 'Submit Pit Scouting'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

@@ -314,7 +314,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   Text _b(String s) => Text(s, style: const TextStyle(fontWeight: FontWeight.w900));
 
   Widget _telemetryTable(List<TeamStandingSummary> s) => _tableCard(
-        'Scoring & Intake Telemetry (averages)',
+        'Scoring & Alliance-Zone Fuel Telemetry (averages)',
         DataTable(
           headingRowColor: const WidgetStatePropertyAll(Elysium.surface2),
           columnSpacing: 18,
@@ -322,9 +322,9 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
             DataColumn(label: Text('Team')),
             DataColumn(label: Text('Matches')),
             DataColumn(label: Text('Auto Shot')),
-            DataColumn(label: Text('Auto Int.')),
+            DataColumn(label: Text('Auto Fuel')),
             DataColumn(label: Text('Tele Shot')),
-            DataColumn(label: Text('Tele Int.')),
+            DataColumn(label: Text('Tele Fuel')),
             DataColumn(label: Text('Est BPS')),
             DataColumn(label: Text('Miss %')),
           ],

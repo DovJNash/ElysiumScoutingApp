@@ -67,7 +67,7 @@ class SuperScoutingFormConfig {
     ),
     SuperScoutingFieldSchema(
       key: 'intakeSpeed',
-      label: 'Intake Rate & Mechanism',
+      label: 'Fuel Passing / Alliance Zone Mechanism',
       hint: 'Over-bumper vs under-bumper, speed of pickup...',
     ),
     SuperScoutingFieldSchema(
