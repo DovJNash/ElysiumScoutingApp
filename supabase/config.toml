@@ -1,0 +1,4 @@
+project_id = "elysium-scouting-app"
+
+[functions.tba-proxy]
+verify_jwt = false

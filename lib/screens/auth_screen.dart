@@ -210,26 +210,42 @@ class _AuthScreenState extends State<AuthScreen> {
       child: SafeArea(
         bottom: false,
         child: Stack(
+          alignment: Alignment.topCenter,
           children: [
-            Padding(
-              padding:
-                  EdgeInsets.fromLTRB(16, tall ? 14 : 8, 16, tall ? 18 : 10),
-              child: tall
-                  ? const Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ElysiumFullLogo(height: 118, onDark: true),
-                        SizedBox(height: 6),
-                        Text('SCOUTING SYSTEM',
-                            style: TextStyle(
+            Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                width: 280,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    tall ? 14 : 8,
+                    16,
+                    tall ? 18 : 10,
+                  ),
+                  child: tall
+                      ? const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            ElysiumFullLogo(height: 118, onDark: true),
+                            SizedBox(height: 6),
+                            Text(
+                              'SCOUTING SYSTEM',
+                              style: TextStyle(
                                 color: Colors.white70,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 3,
-                                fontSize: 12)),
-                      ],
-                    )
-                  : const Center(
-                      child: ElysiumLogo(size: 42, onDark: true)),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        )
+                      : const Center(
+                          child: ElysiumLogo(size: 42, onDark: true),
+                        ),
+                ),
+              ),
             ),
             const Positioned(
               right: 8,

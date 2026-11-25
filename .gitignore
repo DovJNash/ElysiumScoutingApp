@@ -46,3 +46,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Private team role-code files generated for local admin use.
+/team_role_codes.private.json
+/team_role_codes_seed.private.sql

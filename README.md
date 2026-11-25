@@ -47,17 +47,42 @@ The app is **offline-first**: it works without an internet connection, and syncs
    where you ran the SQL.
 
 ### 1.1 The Blue Alliance
-Provide a read API key only at run/build time, never in source control:
+The TBA key belongs on the server, not in the APK. In Supabase Dashboard, open
+**Edge Functions -> Secrets** and add `TBA_API_KEY` with your TBA read key.
+Then deploy the read-only, allowlisted proxy from the repository root:
 ```
-flutter run --dart-define=TBA_API_KEY=YOUR_KEY
-flutter build apk --dart-define=TBA_API_KEY=YOUR_KEY
+supabase login
+supabase link --project-ref YOUR_PROJECT_REF
+supabase functions deploy tba-proxy
 ```
+Deploy this once per Supabase project. The app and every installed APK use the
+proxy, so users do not need to supply a TBA key and it is not embedded in the
+app. The proxy only permits the app's 2027 Israeli district team, event, roster,
+match, and individual team lookups.
+
 The app caches TBA teams, district events, and match schedules locally for
-offline use. Registration loads Israeli district teams for 2027 from TBA and
-shows their team avatars. Event team pickers and the schedule competition
-selector use the 2027 Israel district event/roster data from TBA; no event key
-needs to be entered manually. A previously loaded team list remains available
-offline, and signup allows manual team selection if TBA is unavailable.
+offline use. Registration loads Israeli district teams for 2027 and shows their
+team avatars. Event team pickers and the schedule competition selector use the
+2027 Israel district event/roster data from TBA; no event key needs to be
+entered manually. Signup also permits manual team selection if TBA is
+unavailable.
+
+### 1.2 Private team role-code file
+The Strategy/Leader codes are not available from TBA; use the codes you assign
+to each team. To create a local JSON roster from the 2027 Israeli TBA teams,
+after deploying `tba-proxy`, run from the project root:
+```
+python tool/team_codes_admin.py generate
+```
+Enter each team's existing Strategy and Leader codes in
+`team_role_codes.private.json`. Generate the SQL to seed Supabase:
+```
+python tool/team_codes_admin.py sql
+```
+Run `team_role_codes_seed.private.sql` in the Supabase SQL Editor. Both output
+files are excluded by `.gitignore`; keep them on your own computer and do not
+commit or share them. The generator preserves already-entered codes when it
+refreshes the team roster.
 
 ### 2. Flutter project
 1. In the project folder run, once:
