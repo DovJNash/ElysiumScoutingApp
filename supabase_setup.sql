@@ -13,6 +13,17 @@ alter table public.app_users
 alter table public.app_users
   add column if not exists team_name text not null default '';
 
+-- Login compares names case-insensitively, so "Dov" and "dov" must not be two
+-- different accounts. (If old duplicates exist this only prints a notice;
+-- delete the duplicate from app_users and run the script again.)
+do $$
+begin
+  create unique index if not exists app_users_name_lower_key
+    on public.app_users (lower(name));
+exception when unique_violation then
+  raise notice 'app_users has names that differ only by upper/lower case - fix them and run this script again to enforce unique names.';
+end $$;
+
 create table if not exists public.team_catalog (
   team_number integer primary key,
   team_name text not null
@@ -128,8 +139,17 @@ grant select on public.team_catalog, public.competitions, public.match_schedules
   to anon, authenticated;
 grant insert, update, delete on public.competitions, public.match_schedules,
   public.team_catalog to authenticated;
-grant insert, update, delete on public."Scouting",
-  public."SuperScouting", public.pit_scouting to anon, authenticated;
+
+-- Match / super scouting forms: the app only INSERTs them. Deleting goes
+-- through delete_scouting_record / delete_super_scouting_record (which check
+-- who is asking), so nobody can edit or wipe rows with the public key.
+grant insert on public."Scouting", public."SuperScouting" to anon, authenticated;
+revoke update, delete on public."Scouting", public."SuperScouting"
+  from anon, authenticated;
+
+-- Pit forms are written with upsert (insert + update), never deleted.
+grant insert, update on public.pit_scouting to anon, authenticated;
+revoke delete on public.pit_scouting from anon, authenticated;
 revoke all on public.app_users from anon, authenticated;
 
 drop function if exists public.app_login(text, text);
@@ -205,6 +225,12 @@ begin
     raise exception 'Scouter registration does not use a role access code';
   end if;
 
+  if exists (
+    select 1 from public.app_users where lower(name) = lower(trim(p_name))
+  ) then
+    raise exception 'This name is already taken. Choose another name, or log in.';
+  end if;
+
   insert into public.app_users(id, name, password, role, team_number, team_name)
   values(p_id, trim(p_name), p_password, v_role, p_team_number, trim(p_team_name));
 
@@ -213,6 +239,12 @@ begin
 end;
 $$;
 
+-- Who may delete a form:
+--   * the account that submitted it (any role - a Strategy account can also
+--     submit match forms), or
+--   * a Leader, for forms submitted by an account of the Leader's own team.
+-- (This used to compare the SCOUTED robot's number with the leader's team,
+-- so a leader could only delete forms about their own robot.)
 create or replace function public.delete_scouting_record(
   p_record_id text, p_requester_id text
 )
@@ -223,24 +255,27 @@ set search_path = public
 as $$
 declare
   v_user public.app_users%rowtype;
-  v_team integer;
+  v_owner text;
+  v_owner_team integer;
 begin
   select * into v_user from public.app_users where id = p_requester_id;
   if not found then
     return false;
   end if;
-  select "teamNum" into v_team from public."Scouting" where "ID" = p_record_id;
+  select "scouterId" into v_owner from public."Scouting" where "ID" = p_record_id;
   if not found then
     return true;
   end if;
-  if v_user.role = 'Leader' and v_team = v_user.team_number then
+  if v_owner = p_requester_id then
     delete from public."Scouting" where "ID" = p_record_id;
     return true;
   end if;
-  if v_user.role = 'Scouter' then
-    delete from public."Scouting" s
-    where s."ID" = p_record_id and s."scouterId" = p_requester_id;
-    return found;
+  if v_user.role = 'Leader' then
+    select team_number into v_owner_team from public.app_users where id = v_owner;
+    if v_owner_team is not null and v_owner_team = v_user.team_number then
+      delete from public."Scouting" where "ID" = p_record_id;
+      return true;
+    end if;
   end if;
   return false;
 end;
@@ -256,25 +291,28 @@ set search_path = public
 as $$
 declare
   v_user public.app_users%rowtype;
-  v_team integer;
+  v_owner text;
+  v_owner_team integer;
 begin
   select * into v_user from public.app_users where id = p_requester_id;
   if not found then
     return false;
   end if;
-  select "teamNum" into v_team
+  select "scouterId" into v_owner
   from public."SuperScouting" where "ID" = p_record_id;
   if not found then
     return true;
   end if;
-  if v_user.role = 'Leader' and v_team = v_user.team_number then
+  if v_owner = p_requester_id then
     delete from public."SuperScouting" where "ID" = p_record_id;
     return true;
   end if;
-  if v_user.role = 'Strategy' then
-    delete from public."SuperScouting" s
-    where s."ID" = p_record_id and s."scouterId" = p_requester_id;
-    return found;
+  if v_user.role = 'Leader' then
+    select team_number into v_owner_team from public.app_users where id = v_owner;
+    if v_owner_team is not null and v_owner_team = v_user.team_number then
+      delete from public."SuperScouting" where "ID" = p_record_id;
+      return true;
+    end if;
   end if;
   return false;
 end;
