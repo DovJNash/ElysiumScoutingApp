@@ -480,30 +480,6 @@ class _OverallRankingsTabState extends State<_OverallRankingsTab> {
               return ElysiumCard(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
-                  leading: s == null
-                      ? null
-                      : Builder(builder: (context) {
-                          final status = _accuracyFor(
-                            s,
-                            repo.scouting
-                                .where((item) =>
-                                    item.competition ==
-                                    competition.id)
-                                .toList(),
-                          );
-                          return Tooltip(
-                            message: status.label,
-                            child: Icon(
-                              status.color == Elysium.success
-                                  ? Icons.verified_rounded
-                                  : status.color == Elysium.danger
-                                      ? Icons.report_rounded
-                                      : Icons
-                                          .remove_circle_outline_rounded,
-                              color: status.color,
-                            ),
-                          );
-                        }),
                   leading: CircleAvatar(
                     backgroundColor:
                         index == 0 ? Elysium.primary : Elysium.surface2,
@@ -641,6 +617,30 @@ class _FormsTab extends StatelessWidget {
                         return ElysiumCard(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: ListTile(
+                            leading: s == null
+                                ? null
+                                : Builder(builder: (context) {
+                                    final status = _accuracyFor(
+                                      s,
+                                      repo.scouting
+                                          .where((item) =>
+                                              item.competition ==
+                                              competition.id)
+                                          .toList(),
+                                    );
+                                    return Tooltip(
+                                      message: status.label,
+                                      child: Icon(
+                                        status.color == Elysium.success
+                                            ? Icons.verified_rounded
+                                            : status.color == Elysium.danger
+                                                ? Icons.report_rounded
+                                                : Icons
+                                                    .remove_circle_outline_rounded,
+                                        color: status.color,
+                                      ),
+                                    );
+                                  }),
                             onTap: () => showEntryDetails(
                               context,
                               title: s != null

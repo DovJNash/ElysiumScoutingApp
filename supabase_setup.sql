@@ -119,6 +119,10 @@ grant insert, update, delete on public.competitions, public.match_schedules,
 grant insert, update, delete on public."Scouting",
   public."SuperScouting", public.pit_scouting to anon, authenticated;
 
+drop function if exists public.app_login(text, text);
+drop function if exists public.app_signup(text, text, text, text, text);
+drop function if exists public.app_signup(text, text, text, text, text, integer, text);
+
 create or replace function public.app_login(p_name text, p_password text)
 returns table(user_id text, user_name text, user_role text,
               team_number integer, team_name text)
