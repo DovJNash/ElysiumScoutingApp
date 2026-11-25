@@ -7,6 +7,7 @@ import 'package:frc_scouting_app/models/user_model.dart';
 import 'package:frc_scouting_app/screens/auth_screen.dart';
 import 'package:frc_scouting_app/services/locale_service.dart';
 import 'package:frc_scouting_app/services/tba_service.dart';
+import 'package:frc_scouting_app/theme/elysium_theme.dart';
 
 void main() {
   test('user model preserves team identity', () {
@@ -121,9 +122,11 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(const MaterialApp(home: AuthScreen()));
+    final logoCenter = tester.getCenter(find.byType(ElysiumFullLogo));
     await tester.tap(find.byIcon(Icons.language_rounded));
     await tester.pump();
     expect(find.text('הרשמה'), findsOneWidget);
+    expect(tester.getCenter(find.byType(ElysiumFullLogo)), logoCenter);
     await tester.tap(find.byIcon(Icons.language_rounded));
     await tester.pump();
     expect(find.text('SIGN UP'), findsOneWidget);

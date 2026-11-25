@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class TbaTeam {
   final int number;
@@ -158,17 +158,6 @@ class TbaService {
   TbaService._();
   static final instance = TbaService._();
 
-  static const _baseUrl = 'https://www.thebluealliance.com/api/v3';
-  static const _apiKey =
-      String.fromEnvironment('TBA_API_KEY', defaultValue: '');
-
-  bool get isConfigured => _apiKey.isNotEmpty;
-
-  Map<String, String> get _headers => {
-        'X-TBA-App-Id': 'elysium1937.scouting.app',
-        if (_apiKey.isNotEmpty) 'X-TBA-Auth-Key': _apiKey,
-      };
-
   Future<List<TbaTeam>> teamsAtEvent(String eventKey) async {
     final result = await _get('/event/$eventKey/teams/simple');
     final teams =
@@ -183,11 +172,6 @@ class TbaService {
 
   Future<List<TbaTeam>> israeliTeams({int year = 2027}) async {
     final cached = await cachedIsraeliTeams(year: year);
-    if (!isConfigured) {
-      if (cached.isNotEmpty) return cached;
-      throw Exception('TBA_API_KEY is not configured');
-    }
-
     final result = await _get('/district/${year}isr/teams/simple');
     final teams = (result as List)
         .map((row) => TbaTeam.fromJson(row as Map<String, dynamic>))
@@ -208,11 +192,6 @@ class TbaService {
 
   Future<List<TbaEvent>> israeliDistrictEvents({int year = 2027}) async {
     final cached = await cachedIsraeliDistrictEvents(year: year);
-    if (!isConfigured) {
-      if (cached.isNotEmpty) return cached;
-      throw Exception('TBA_API_KEY is not configured');
-    }
-
     final result = await _get('/district/${year}isr/events/simple');
     final events = (result as List)
         .map((row) => TbaEvent.fromJson(row as Map<String, dynamic>))
@@ -259,14 +238,17 @@ class TbaService {
           .toList();
 
   Future<dynamic> _get(String path) async {
-    if (!isConfigured) throw Exception('TBA_API_KEY is not configured');
-    final response = await http
-        .get(Uri.parse('$_baseUrl$path'), headers: _headers)
-        .timeout(const Duration(seconds: 20));
-    if (response.statusCode != 200) {
-      throw Exception('TBA request failed (${response.statusCode})');
+    final response = await Supabase.instance.client.functions
+        .invoke('tba-proxy', body: {'path': path})
+        .timeout(const Duration(seconds: 25));
+    if (response.status < 200 || response.status >= 300) {
+      throw Exception(
+        'TBA request failed (${response.status}): ${response.data}',
+      );
     }
-    return json.decode(response.body);
+    final data = response.data;
+    if (data is String) return json.decode(data);
+    return data;
   }
 
   Future<void> _cache(String key, List<Map<String, dynamic>> value) async {
