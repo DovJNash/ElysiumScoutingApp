@@ -50,3 +50,5 @@ app.*.map.json
 # Private team role-code files generated for local admin use.
 /team_role_codes.private.json
 /team_role_codes_seed.private.sql
+
+.env

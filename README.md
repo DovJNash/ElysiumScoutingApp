@@ -137,3 +137,8 @@ Scouter deletes only his own forms, Strategy only his own reports, Leader any fo
 - [x] the leader can create new competitions with existing teams
 - [x] another type of scouting: pit scouting, (first we need to choose to which team we do pit scouting, this scouting type is only for stragety and leader) the questions: What are the autonomus types of the team, hhat they do good, what they difficult with, how they do diffence ect. and all is a phrase
 - [x] Add a language swith (english and hebrew, and make the font in hebrew looks good, the font in hebrew will be assistant)
+
+# Future features V2
+- [ ] the leader has access to: Ranking, Overall, Form, Data, schedule, scouting, super scouting, pit scouting, add competition
+- [ ] in the add competition when choosing the teams to be in the competition, instead of writing the teams numbers just make it a checklist with all the team in ISR 2027 
+- [ ] in the data, i want to see a list of every team and all of their pit scouting forms data (the team name logo and number, how many forms have been submitted for these teams, and all the forms data organized)
