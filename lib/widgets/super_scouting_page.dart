@@ -178,6 +178,7 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
   @override
   Widget build(BuildContext context) {
     super.build(context); // required by AutomaticKeepAliveClientMixin
+    final theme = Theme.of(context);
     if (_team == null) {
       return TeamPicker(
         competition: widget.competition,
