@@ -1,11 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+
 import '../config/supabase_config.dart';
 import '../models/user_model.dart';
+import 'data_repository.dart';
+import 'local_db_service.dart';
+import 'pit_scouting_service.dart';
 
 class AuthService extends ChangeNotifier {
   static final AuthService instance = AuthService._internal();
@@ -26,8 +31,9 @@ class AuthService extends ChangeNotifier {
     final raw = prefs.getString(_prefsKey);
     if (raw != null && raw.isNotEmpty) {
       try {
-        _currentUser =
-            UserModel.fromMap(json.decode(raw) as Map<String, dynamic>);
+        _currentUser = UserModel.fromMap(
+          json.decode(raw) as Map<String, dynamic>,
+        );
         if (_currentUser!.id.isEmpty) _currentUser = null;
       } catch (_) {
         _currentUser = null;
@@ -71,6 +77,80 @@ class AuthService extends ChangeNotifier {
     await prefs.setString(_profilesKey, json.encode(profiles));
   }
 
+  Future<void> _removeCredential(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    final id = name.trim().toLowerCase();
+    final credentials = _readMap(prefs, _credentialsKey)..remove(id);
+    final profiles = _readMap(prefs, _profilesKey)..remove(id);
+    await prefs.setString(_credentialsKey, json.encode(credentials));
+    await prefs.setString(_profilesKey, json.encode(profiles));
+  }
+
+  Future<String?> currentPassword() async {
+    final user = _currentUser;
+    if (user == null) return null;
+    final prefs = await SharedPreferences.getInstance();
+    return _readMap(
+      prefs,
+      _credentialsKey,
+    )[user.name.trim().toLowerCase()]
+        ?.toString();
+  }
+
+  Future<UserModel> updateProfile({
+    required String currentPassword,
+    required String name,
+    String? newPassword,
+  }) async {
+    final user = _currentUser;
+    if (user == null) {
+      throw StateError('The current account credentials are unavailable.');
+    }
+    if (name.trim().isEmpty) throw ArgumentError('Name cannot be empty.');
+    final result = await _supabase.rpc(
+      'profile_update',
+      params: {
+        'p_user_id': user.id,
+        'p_current_password': currentPassword,
+        'p_new_name': name.trim(),
+        'p_new_password':
+            newPassword?.isNotEmpty == true ? newPassword : currentPassword,
+      },
+    ).timeout(const Duration(seconds: 20));
+    final rows = List<Map<String, dynamic>>.from(result as List);
+    if (rows.isEmpty) throw StateError('The profile update returned no user.');
+    final updated = UserModel.fromRpc(rows.first);
+    await _removeCredential(user.name);
+    await _saveCredential(
+      name: updated.name,
+      password:
+          newPassword?.isNotEmpty == true ? newPassword! : currentPassword,
+      user: updated,
+    );
+    await _saveSession(updated);
+    return updated;
+  }
+
+  Future<void> deleteAccount({required String password}) async {
+    final user = _currentUser;
+    if (user == null) {
+      throw StateError('The current account credentials are unavailable.');
+    }
+    final deleted = await _supabase.rpc(
+      'profile_delete_account',
+      params: {'p_user_id': user.id, 'p_password': password},
+    ).timeout(const Duration(seconds: 20));
+    if (deleted != true) throw StateError('The account was not deleted.');
+    await LocalDbService.instance.removeUserRecords(user.id);
+    await PitScoutingService.instance.removeUserData(user.id);
+    await _removeCredential(user.name);
+    _currentUser = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_prefsKey);
+    await DataRepository.instance.reload();
+    notifyListeners();
+  }
+
   /// Offline login. It returns the profile of the account that was typed in
   /// (it used to return whichever account was saved as the current session -
   /// and nothing at all after a log out, so it never worked).
@@ -94,7 +174,8 @@ class AuthService extends ChangeNotifier {
     if (sessionRaw == null) return null;
     try {
       final user = UserModel.fromMap(
-          Map<String, dynamic>.from(json.decode(sessionRaw) as Map));
+        Map<String, dynamic>.from(json.decode(sessionRaw) as Map),
+      );
       return user.id.isNotEmpty && user.name.trim().toLowerCase() == id
           ? user
           : null;
@@ -154,10 +235,10 @@ class AuthService extends ChangeNotifier {
       throw Exception('Please enter both name and password.');
     }
     try {
-      final res = await _supabase.rpc('app_login', params: {
-        'p_name': name.trim(),
-        'p_password': password,
-      }).timeout(const Duration(seconds: 20));
+      final res = await _supabase.rpc(
+        'app_login',
+        params: {'p_name': name.trim(), 'p_password': password},
+      ).timeout(const Duration(seconds: 20));
       final rows = List<Map<String, dynamic>>.from(res as List);
       if (rows.isEmpty) throw Exception('Invalid name or password.');
       final user = UserModel.fromRpc(rows.first);
@@ -188,15 +269,18 @@ class AuthService extends ChangeNotifier {
       throw Exception('Name and password cannot be empty.');
     }
     try {
-      final res = await _supabase.rpc('app_signup', params: {
-        'p_id': const Uuid().v4(),
-        'p_name': name.trim(),
-        'p_password': password, // plain text, per your specification
-        'p_role': UserRole.normalize(role),
-        'p_code': roleAccessCode.trim(),
-        'p_team_number': teamNumber,
-        'p_team_name': teamName.trim(),
-      }).timeout(const Duration(seconds: 20));
+      final res = await _supabase.rpc(
+        'app_signup',
+        params: {
+          'p_id': const Uuid().v4(),
+          'p_name': name.trim(),
+          'p_password': password, // plain text, per your specification
+          'p_role': UserRole.normalize(role),
+          'p_code': roleAccessCode.trim(),
+          'p_team_number': teamNumber,
+          'p_team_name': teamName.trim(),
+        },
+      ).timeout(const Duration(seconds: 20));
       final rows = List<Map<String, dynamic>>.from(res as List);
       if (rows.isEmpty) throw Exception('Sign up failed. Please try again.');
       final user = UserModel.fromRpc(rows.first);

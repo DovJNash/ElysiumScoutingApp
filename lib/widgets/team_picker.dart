@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
-import '../config/supabase_config.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
 import '../models/team_model.dart';
 import '../services/locale_service.dart';
 import '../theme/elysium_theme.dart';
@@ -16,30 +17,44 @@ class TeamLogo extends StatelessWidget {
   List<String> get _urls {
     if (team.logoUrl.isEmpty) return const [];
     final list = <String>[team.logoUrl];
-    final marker = '/avatar/${SupabaseConfig.season}/';
-    if (team.logoUrl.contains(marker)) {
-      list.add(team.logoUrl
-          .replaceFirst(marker, '/avatar/${SupabaseConfig.season - 1}/'));
+    final year = RegExp(r'/avatar/(\d+)/').firstMatch(team.logoUrl);
+    if (year != null) {
+      final season = int.tryParse(year.group(1)!);
+      if (season != null) {
+        list.add(
+          team.logoUrl.replaceFirst(
+            '/avatar/$season/',
+            '/avatar/${season - 1}/',
+          ),
+        );
+      }
     }
     return list;
   }
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final fallback = Center(
-      child: Text('${team.number}',
-          style: TextStyle(
-              fontSize: size * 0.28,
-              fontWeight: FontWeight.w900,
-              color: Elysium.primary)),
+      child: Text(
+        '${team.number}',
+        style: TextStyle(
+          fontSize: size * 0.28,
+          fontWeight: FontWeight.w900,
+          color: Elysium.primary,
+        ),
+      ),
     );
 
     Widget content;
     if (team.number == 1937) {
       content = Padding(
         padding: EdgeInsets.all(size * 0.1),
-        child: Image.asset(Elysium.iconAsset,
-            fit: BoxFit.contain, filterQuality: FilterQuality.high),
+        child: Image.asset(
+          Elysium.iconAsset,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+        ),
       );
     } else if (_urls.isEmpty) {
       content = fallback;
@@ -53,8 +68,10 @@ class TeamLogo extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: Elysium.surface2,
-          border: Border.all(color: Elysium.border),
+          color: dark ? const Color(0xFF1B304C) : Elysium.surface2,
+          border: Border.all(
+            color: dark ? const Color(0xFF354B68) : Elysium.border,
+          ),
           borderRadius: BorderRadius.circular(10),
         ),
         child: content,
@@ -84,17 +101,17 @@ class _NetworkAvatarState extends State<_NetworkAvatar> {
   @override
   Widget build(BuildContext context) {
     if (_i >= widget.urls.length) return widget.fallback;
-    return Image.network(
-      widget.urls[_i],
-      key: ValueKey(widget.urls[_i]),
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) {
+    return CachedNetworkImage(
+      imageUrl: widget.urls[_i],
+      imageBuilder: (context, provider) =>
+          Image(image: provider, fit: BoxFit.cover),
+      errorWidget: (_, __, ___) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) setState(() => _i++);
         });
         return widget.fallback;
       },
-      loadingBuilder: (c, child, p) => p == null ? child : widget.fallback,
+      placeholder: (_, __) => widget.fallback,
     );
   }
 }
@@ -154,9 +171,11 @@ class _TeamPickerState extends State<TeamPicker> {
                   ),
                   const Spacer(),
                   Flexible(
-                    child: Text(widget.competition.name,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w800)),
+                    child: Text(
+                      widget.competition.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
                   ),
                 ],
               ),
@@ -167,8 +186,9 @@ class _TeamPickerState extends State<TeamPicker> {
                   onChanged: (v) => setState(() => _query = v),
                   decoration: InputDecoration(
                     isDense: true,
-                    hintText: LocaleService.instance
-                        .text('Search team number or name'),
+                    hintText: LocaleService.instance.text(
+                      'Search team number or name',
+                    ),
                     prefixIcon: const Icon(Icons.search_rounded),
                   ),
                 ),
@@ -186,11 +206,14 @@ class _TeamPickerState extends State<TeamPicker> {
                   borderColor: widget.accent,
                   child: ListTile(
                     leading: const Icon(Icons.add_circle_outline_rounded),
-                    title: Text('Team $typed (not in list)',
-                        style: const TextStyle(fontWeight: FontWeight.w800)),
+                    title: Text(
+                      'Team $typed (not in list)',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
                     subtitle: const Text('Scout it anyway'),
                     trailing: ElevatedButton(
-                      onPressed: () => widget.onSelected(TeamInfo.unlisted(typed)),
+                      onPressed: () =>
+                          widget.onSelected(TeamInfo.unlisted(typed)),
                       child: const Text('Next'),
                     ),
                   ),
@@ -199,12 +222,18 @@ class _TeamPickerState extends State<TeamPicker> {
                 (team) => ElysiumCard(
                   margin: const EdgeInsets.only(bottom: 10),
                   child: ListTile(
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
                     leading: TeamLogo(team: team),
-                    title: Text('${team.number} — ${team.name}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w800, fontSize: 16)),
+                    title: Text(
+                      '${team.number} — ${team.name}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
                     trailing: ElevatedButton(
                       onPressed: () => widget.onSelected(team),
                       child: const Text('Next'),
@@ -217,8 +246,10 @@ class _TeamPickerState extends State<TeamPicker> {
                 const Padding(
                   padding: EdgeInsets.all(24),
                   child: Center(
-                    child: Text('No team found. Type the team number to add it.',
-                        style: TextStyle(color: Elysium.muted)),
+                    child: Text(
+                      'No team found. Type the team number to add it.',
+                      style: TextStyle(color: Elysium.muted),
+                    ),
                   ),
                 ),
             ],

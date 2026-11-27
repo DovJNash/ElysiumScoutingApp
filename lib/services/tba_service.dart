@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/tba_config.dart';
 
@@ -18,7 +18,7 @@ class TbaTeam {
     this.logoUrl = '',
   });
 
-  factory TbaTeam.fromJson(Map<String, dynamic> json) {
+  factory TbaTeam.fromJson(Map<String, dynamic> json, {int year = 2027}) {
     final key = json['key']?.toString() ?? '';
     final number = int.tryParse(key.replaceFirst('frc', '')) ?? 0;
     final nickname = json['nickname']?.toString().trim() ?? '';
@@ -32,7 +32,7 @@ class TbaTeam {
               : 'Team $number',
       country: json['country']?.toString() ?? '',
       logoUrl: json['logoUrl']?.toString() ??
-          'https://www.thebluealliance.com/avatar/2027/frc$number.png',
+          'https://www.thebluealliance.com/avatar/$year/frc$number.png',
     );
   }
 
@@ -48,23 +48,27 @@ class TbaEvent {
   final String key;
   final String name;
   final String city;
+  final String country;
 
   const TbaEvent({
     required this.key,
     required this.name,
     this.city = '',
+    this.country = '',
   });
 
   factory TbaEvent.fromJson(Map<String, dynamic> json) => TbaEvent(
         key: json['key']?.toString() ?? '',
         name: json['name']?.toString() ?? json['key']?.toString() ?? '',
         city: json['city']?.toString() ?? '',
+        country: json['country']?.toString() ?? '',
       );
 
   Map<String, dynamic> toJson() => {
         'key': key,
         'name': name,
         'city': city,
+        'country': country,
       };
 
   String get label => city.isEmpty ? name : '$name — $city';
@@ -104,8 +108,9 @@ class TbaMatch {
       final teamKeys =
           (alliances[color]?['team_keys'] as List<dynamic>? ?? const []);
       return teamKeys
-          .map((key) =>
-              int.tryParse(key.toString().replaceFirst('frc', '')) ?? 0)
+          .map(
+            (key) => int.tryParse(key.toString().replaceFirst('frc', '')) ?? 0,
+          )
           .where((number) => number > 0)
           .toList();
     }
@@ -145,8 +150,9 @@ class TbaMatch {
   /// Qualifications first, then eighth-finals ... finals; inside a level by
   /// set and match number (sorting by match number alone mixed the levels).
   static int compareSchedule(TbaMatch a, TbaMatch b) {
-    final level = (_levelOrder[a.matchLevel] ?? 9)
-        .compareTo(_levelOrder[b.matchLevel] ?? 9);
+    final level = (_levelOrder[a.matchLevel] ?? 9).compareTo(
+      _levelOrder[b.matchLevel] ?? 9,
+    );
     if (level != 0) return level;
     final set = a.setNumber.compareTo(b.setNumber);
     if (set != 0) return set;
@@ -178,13 +184,13 @@ class TbaService {
 
   Future<List<TbaTeam>> teamsAtEvent(String eventKey) async {
     final result = await _get('/event/$eventKey/teams/simple');
-    final teams =
-        (result as List).map((e) => TbaTeam.fromJson(e as Map<String, dynamic>));
+    final year = int.tryParse(eventKey.substring(0, 4)) ?? 2027;
+    final teams = (result as List).map(
+      (e) => TbaTeam.fromJson(e as Map<String, dynamic>, year: year),
+    );
     final list = teams.where((team) => team.number > 0).toList()
       ..sort((a, b) => a.number.compareTo(b.number));
-    await _cache('teams_$eventKey', list
-        .map((team) => {'key': 'frc${team.number}', 'nickname': team.name})
-        .toList());
+    await _cache('teams_$eventKey', list.map((team) => team.toJson()).toList());
     return list;
   }
 
@@ -199,13 +205,15 @@ class TbaService {
       final byNumber = <int, TbaTeam>{};
       try {
         final events = await israeliDistrictEvents(year: y);
-        final perEvent = await Future.wait(events.map((event) async {
-          try {
-            return await teamsAtEvent(event.key);
-          } catch (_) {
-            return <TbaTeam>[];
-          }
-        }));
+        final perEvent = await Future.wait(
+          events.map((event) async {
+            try {
+              return await teamsAtEvent(event.key);
+            } catch (_) {
+              return <TbaTeam>[];
+            }
+          }),
+        );
         for (final teams in perEvent) {
           for (final team in teams) {
             byNumber.putIfAbsent(team.number, () => team);
@@ -218,7 +226,10 @@ class TbaService {
         try {
           final result = await _get('/district/${y}isr/teams/simple');
           for (final row in result as List) {
-            final team = TbaTeam.fromJson(row as Map<String, dynamic>);
+            final team = TbaTeam.fromJson(
+              row as Map<String, dynamic>,
+              year: year,
+            );
             if (team.number > 0) byNumber.putIfAbsent(team.number, () => team);
           }
           failure = null;
@@ -229,8 +240,10 @@ class TbaService {
       if (byNumber.isNotEmpty) {
         final teams = byNumber.values.toList()
           ..sort((a, b) => a.number.compareTo(b.number));
-        await _cache('israeli_teams_$year',
-            teams.map((team) => team.toJson()).toList());
+        await _cache(
+          'israeli_teams_$year',
+          teams.map((team) => team.toJson()).toList(),
+        );
         return teams;
       }
     }
@@ -261,15 +274,36 @@ class TbaService {
     return events;
   }
 
+  Future<List<TbaEvent>> israeliEvents({int year = 2027}) async {
+    final result = await _get('/events/$year/simple');
+    final events = (result as List)
+        .map((row) => TbaEvent.fromJson(row as Map<String, dynamic>))
+        .where(
+          (event) =>
+              event.key.startsWith('$year') &&
+              event.country.trim().toLowerCase() == 'israel',
+        )
+        .toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    await _cache(
+      'israeli_events_$year',
+      events.map((event) => event.toJson()).toList(),
+    );
+    return events;
+  }
+
+  Future<List<TbaEvent>> cachedIsraeliEvents({int year = 2027}) async =>
+      (await _readCache('israeli_events_$year'))
+          .map(TbaEvent.fromJson)
+          .toList();
+
   Future<List<TbaEvent>> cachedIsraeliDistrictEvents({int year = 2027}) async =>
       (await _readCache('israeli_district_events_$year'))
           .map(TbaEvent.fromJson)
           .toList();
 
   Future<List<TbaTeam>> cachedIsraeliTeams({int year = 2027}) async =>
-      (await _readCache('israeli_teams_$year'))
-          .map(TbaTeam.fromJson)
-          .toList();
+      (await _readCache('israeli_teams_$year')).map(TbaTeam.fromJson).toList();
 
   Future<List<TbaMatch>> matchesAtEvent(String eventKey) async {
     final result = await _get('/event/$eventKey/matches/simple');
@@ -277,8 +311,10 @@ class TbaService {
         .map((e) => TbaMatch.fromJson(e as Map<String, dynamic>))
         .toList();
     matches.sort(TbaMatch.compareSchedule);
-    await _cache('matches_$eventKey',
-        matches.map((match) => match.toJson()).toList());
+    await _cache(
+      'matches_$eventKey',
+      matches.map((match) => match.toJson()).toList(),
+    );
     return matches;
   }
 
@@ -292,33 +328,22 @@ class TbaService {
           .map((e) => TbaMatch.fromJson(e))
           .toList();
 
-  /// GET https://www.thebluealliance.com/api/v3<path> with the key from
-  /// [TbaConfig]. Returns the decoded JSON.
+  /// Read-only TBA requests go through the server-side allowlisted proxy.
   Future<dynamic> _get(String path) async {
-    final http.Response response;
+    final FunctionResponse response;
     try {
-      response = await http.get(
-        Uri.parse('${TbaConfig.baseUrl}$path'),
-        headers: {
-          TbaConfig.authHeader: TbaConfig.apiKey,
-          'Accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 25));
+      response = await Supabase.instance.client.functions.invoke(
+          TbaConfig.functionName,
+          body: {'path': path}).timeout(const Duration(seconds: 25));
     } on Exception catch (error) {
-      throw Exception('Could not reach The Blue Alliance: $error');
+      throw Exception('Could not reach The Blue Alliance proxy: $error');
     }
-    if (response.statusCode == 401) {
-      throw Exception(
-        'The Blue Alliance rejected the API key (401). '
-        'Check lib/config/tba_config.dart.',
-      );
+    if (response.status < 200 || response.status >= 300) {
+      throw Exception('TBA request failed (${response.status}) for $path');
     }
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('TBA request failed (${response.statusCode}) for $path');
-    }
-    // Decode the bytes as UTF-8 explicitly so Hebrew / accented team names
-    // are never garbled.
-    return json.decode(utf8.decode(response.bodyBytes));
+    final data = response.data;
+    if (data is String) return json.decode(data);
+    return data;
   }
 
   Future<void> _cache(String key, List<Map<String, dynamic>> value) async {

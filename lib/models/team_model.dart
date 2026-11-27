@@ -1,7 +1,9 @@
 import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../config/supabase_config.dart';
 import '../services/tba_service.dart';
 
@@ -67,12 +69,12 @@ class CompetitionInfo {
 }
 
 class CompetitionRepository {
-  static List<CompetitionInfo>? _cached;
+  static final Map<int, List<CompetitionInfo>> _baseCache = {};
 
   /// When [_cached] was last downloaded from TBA. Every screen asks for the
   /// competitions when it opens; within this time they share one download
   /// instead of each sending a request per event to The Blue Alliance.
-  static DateTime? _fetchedAt;
+  static final Map<int, DateTime> _fetchedAt = {};
   static const Duration _freshFor = Duration(minutes: 3);
 
   /// Competitions a Leader created (a custom set of teams). They are stored
@@ -92,14 +94,19 @@ class CompetitionRepository {
   /// when the server refuses or cannot be reached.
   static Future<void> createCompetition({
     required String requesterId,
+    required String requesterPassword,
     required CompetitionInfo competition,
   }) async {
-    await Supabase.instance.client.rpc('create_competition', params: {
-      'p_requester_id': requesterId,
-      'p_id': competition.id,
-      'p_name': competition.name,
-      'p_team_numbers': competition.teams.map((t) => t.number).toList(),
-    }).timeout(const Duration(seconds: 20));
+    await Supabase.instance.client.rpc(
+      'create_competition',
+      params: {
+        'p_requester_id': requesterId,
+        'p_password': requesterPassword,
+        'p_id': competition.id,
+        'p_name': competition.name,
+        'p_team_numbers': competition.teams.map((t) => t.number).toList(),
+      },
+    ).timeout(const Duration(seconds: 20));
     addCompetition(competition);
     await _saveCustomCache([
       for (final item in _custom)
@@ -107,7 +114,7 @@ class CompetitionRepository {
           'id': item.id,
           'name': item.name,
           'team_numbers': item.teams.map((t) => t.number).toList(),
-        }
+        },
     ]);
   }
 
@@ -149,13 +156,17 @@ class CompetitionRepository {
           .where((row) => (row['created_by'] ?? '').toString().isNotEmpty)
           .toList();
       fromServer = true;
-      await _saveCustomCache(rows
-          .map((row) => {
+      await _saveCustomCache(
+        rows
+            .map(
+              (row) => {
                 'id': row['id'],
                 'name': row['name'],
                 'team_numbers': row['team_numbers'],
-              })
-          .toList());
+              },
+            )
+            .toList(),
+      );
     } catch (_) {
       rows = await _readCustomCache();
     }
@@ -173,20 +184,22 @@ class CompetitionRepository {
       final numbers = ((row['team_numbers'] as List?) ?? const [])
           .map((n) => (n as num).toInt())
           .toList();
-      loaded.add(CompetitionInfo(
-        id: row['id'].toString(),
-        name: row['name'].toString(),
-        teams: [
-          for (final number in numbers)
-            known[number] == null
-                ? TeamInfo.unlisted(number)
-                : TeamInfo.fromTba(
-                    number: number,
-                    name: known[number]!.name,
-                    logoUrl: known[number]!.logoUrl,
-                  ),
-        ],
-      ));
+      loaded.add(
+        CompetitionInfo(
+          id: row['id'].toString(),
+          name: row['name'].toString(),
+          teams: [
+            for (final number in numbers)
+              known[number] == null
+                  ? TeamInfo.unlisted(number)
+                  : TeamInfo.fromTba(
+                      number: number,
+                      name: known[number]!.name,
+                      logoUrl: known[number]!.logoUrl,
+                    ),
+          ],
+        ),
+      );
     }
     // Competitions created on this device a moment ago stay until the server
     // list contains them.
@@ -200,34 +213,41 @@ class CompetitionRepository {
   }
 
   static Future<List<CompetitionInfo>> _fromTbaEvents(
-      List<TbaEvent> events) async {
-    final competitions = await Future.wait(events.map((event) async {
-      List<TbaTeam> teams;
-      try {
-        teams = await TbaService.instance.teamsAtEvent(event.key);
-      } catch (_) {
-        teams = await TbaService.instance.cachedTeams(event.key);
-      }
-      return CompetitionInfo(
-        id: event.key,
-        name: event.label,
-        teams: teams
-            .map((team) => TeamInfo.fromTba(
+    List<TbaEvent> events, {
+    required int year,
+  }) async {
+    final competitions = await Future.wait(
+      events.map((event) async {
+        List<TbaTeam> teams;
+        try {
+          teams = await TbaService.instance.teamsAtEvent(event.key);
+        } catch (_) {
+          teams = await TbaService.instance.cachedTeams(event.key);
+        }
+        return CompetitionInfo(
+          id: event.key,
+          name: event.label,
+          teams: teams
+              .map(
+                (team) => TeamInfo.fromTba(
                   number: team.number,
                   name: team.name,
                   logoUrl: team.logoUrl,
-                ))
-            .toList(),
-      );
-    }));
-    _cached = competitions;
-    _fetchedAt = DateTime.now();
+                ),
+              )
+              .toList(),
+        );
+      }),
+    );
+    _baseCache[year] = competitions;
+    _fetchedAt[year] = DateTime.now();
     return competitions;
   }
 
   /// TBA events (or the bundled list) plus the competitions Leaders created.
-  static Future<List<CompetitionInfo>> loadCompetitions(
-      {int year = 2027}) async {
+  static Future<List<CompetitionInfo>> loadCompetitions({
+    int year = 2027,
+  }) async {
     final base = await _loadBase(year: year);
     try {
       await _refreshCustom();
@@ -237,29 +257,31 @@ class CompetitionRepository {
   }
 
   static Future<List<CompetitionInfo>> _loadBase({int year = 2027}) async {
-    final fetchedAt = _fetchedAt;
+    final fetchedAt = _fetchedAt[year];
+    final cached = _baseCache[year];
     if (fetchedAt != null &&
-        _cached != null &&
-        _cached!.isNotEmpty &&
+        cached != null &&
+        cached.isNotEmpty &&
         DateTime.now().difference(fetchedAt) < _freshFor) {
-      return _cached!;
+      return cached;
     }
     List<TbaEvent> events = [];
     try {
-      events = await TbaService.instance.israeliDistrictEvents(year: year);
+      events = await TbaService.instance.israeliEvents(year: year);
     } catch (_) {
-      events =
-          await TbaService.instance.cachedIsraeliDistrictEvents(year: year);
+      events = await TbaService.instance.cachedIsraeliEvents(year: year);
     }
 
-    if (events.isNotEmpty) return _fromTbaEvents(events);
-    if (_cached != null && _cached!.isNotEmpty) return _cached!;
+    if (events.isNotEmpty) return _fromTbaEvents(events, year: year);
+    if (cached != null && cached.isNotEmpty) return cached;
+    if (year != 2027) return [];
     final jsonString = await rootBundle.loadString('assets/competitions.json');
     final decoded = json.decode(jsonString) as Map<String, dynamic>;
     final list = decoded['competitions'] as List<dynamic>;
-    _cached = list
+    final fallback = list
         .map((c) => CompetitionInfo.fromJson(c as Map<String, dynamic>))
         .toList();
-    return _cached!;
+    _baseCache[year] = fallback;
+    return fallback;
   }
 }

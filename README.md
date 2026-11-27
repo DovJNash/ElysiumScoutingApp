@@ -7,8 +7,12 @@ The app is **offline-first**: it works without an internet connection, and syncs
 
 ### 1. Supabase (once per Supabase project)
 1. Dashboard -> *SQL Editor* -> *New query* -> paste ALL of `supabase_setup.sql` -> *Run*.
-   The last result must list **5 functions** (`app_login`, `app_signup`,
-   `delete_scouting_record`, `delete_super_scouting_record`, `create_competition`). If you get an error,
+   The last result must list **12 functions** (`app_login`, `app_signup`,
+   `delete_scouting_record`, `delete_super_scouting_record`, `create_competition`,
+   `leader_update_team_role_codes`, `leader_team_members`,
+   `leader_set_match_assignment`, `my_match_assignments`,
+   `leader_member_match_assignments`, `profile_update`,
+   `profile_delete_account`). If you get an error,
    or the list is shorter, the setup did not finish.
 2. Left-over tables from older versions? Run `supabase_reset.sql` first
    (it deletes all data/accounts), then run `supabase_setup.sql` again.
@@ -57,15 +61,15 @@ supabase functions deploy tba-proxy
 ```
 Deploy this once per Supabase project. The app and every installed APK use the
 proxy, so users do not need to supply a TBA key and it is not embedded in the
-app. The proxy only permits the app's 2027 Israeli district team, event, roster,
-match, and individual team lookups.
+app. The proxy only permits 2026/2027 Israeli events, districts, rosters,
+matches, and individual team lookups.
 
-The app caches TBA teams, district events, and match schedules locally for
-offline use. Registration loads Israeli district teams for 2027 and shows their
-team avatars. Event team pickers and the schedule competition selector use the
-2027 Israel district event/roster data from TBA; no event key needs to be
-entered manually. Signup also permits manual team selection if TBA is
-unavailable.
+The app caches Israeli TBA events, teams, and match schedules locally for
+offline use, and caches team logos on disk. Registration loads Israeli district
+teams for 2027 and shows their team avatars. Competition and schedule screens
+let users choose 2026 or 2027 and list Israeli TBA events for that year; event
+team pickers use the roster from TBA. No event key needs to be entered
+manually. Signup also permits manual team selection if TBA is unavailable.
 
 ### 1.2 Private team role-code file
 The Strategy/Leader codes are not available from TBA; use the codes you assign
@@ -158,14 +162,19 @@ Every account deletes only the forms it submitted itself; a Leader can also dele
   submitted for it. Open a team to read the data of all of its forms.
 
 ## Future features V3
-- [ ] the leader can change his team's access codes (strategy and leader) and the new codes will be updated in the database and in the app
-- [ ] changes in the normal scouting form: the first screen after choosing the team & match, there will be a screen asking "Did the robot show up to the match?" if the answer is no, the form will be submitted with all the fields empty and a note that the robot didn't show up, if the answer is yes, the form will continue as normal.
-- [ ] instead of the current starting position choosing I want to make a photo of the 2026 REBUILT blue alliance zone from the top view (a photo from the internet!), and the user can choose on the photo the starting position of the robot (left trench, left bumper, right bumper, right trench, hub) and the starting position will be saved in the form.
-- [ ] the autonomous part in the normal scouting form -  a screen with a slider 1-10 asking "How many fuels did the robot shoot?" and every number will have a description of how many fuels it means, a counter "How many cycles did the robot do?" and every number will have a description of how many cycles it means, and another slider "How many fules did the robot deliver?" and every number will have a description of how many fules it means, and another slider "How fast was the robot intake" and every number will have a description of intake speed it means. + an option to choose the robot exit path (a photo of the 2026 REBUILT blue alliance zone from the top view, and the user can choose on the photo the path the robot took to exit the alliance zone (left trench, left bumper, right bumper, right trench, none) and the path will be saved in the form.) + a slider 1-5 of "Overall autonomous performance" and every number will have a description of how good the robot did in the autonomous.
-- [ ] the teleop part in the normal scouting form - a question "Can the robot shoot while moving?" and a yes/no buttons ,a slider 1-10 asking "How many fuels did the robot shoot?" and every number will have a description of how many fuels it means, a counter "How many cycles did the robot do?", another slider "How many fules did the robot deliver?" and every number will have a description of how many fules it means, and another slider "How fast was the robot intake?" and every number will have a description of intake speed it means, a slider "How accurate is the robot shooting?" 1-5 and every number will have a description of how accurate it means, and a slider "Overall teleop performance" 1-10 and every number will have a description of how good the robot did in the teleop.
-- [ ] the defence & climb part in the normal scouting form (after the teleop part) - a yes/no question "Did the robot played defence?" if yes, a slider 1-5 asking "How good was the robot in defence?" and every number will have a description of how good it means, another yes/no question "Did the robot was dealing with defence?" if yes, a slider 1-5 asking "How good was the robot in dealing with defence?" and every number will have a description of how good it means, a slider 1-10 of "How good was the driver" and every number will have a description of how good it means, another yes/no question "Did the robot climb?" if yes, a slider (L1, L2, L3) and a counter "How much time did the robot took to climb?" + an option to write notes about the game.
-- [ ] the leader can assign to his scouters/strategies a specific match to scout, and the scouter/strategy will see only the match that was assigned to him/her in the app.
-- [ ] a profile page for every user, with the user's name, role, team, and a list of all the forms submitted by the user, an option to change their password/name, an option to delete their account, and an option to log out, an option to switch to dark mode, and an option to switch the app language (english/hebrew).
-- [ ] find a way to load the team's logo faster, maybe by using a different image format or by caching the images in the app.
-- [ ] note that some of the normal scouting changes can be applied to the super scouting form as well, but not all of them, and some of them will be different in the super scouting form.
-- [ ] another competition: ISR 2026 IOS (Israel Off Season) (get the teams list from TBA), in the competition selection screen, the user can choose a year. for that year the app will show all the events in that year
+- [x] Leaders can update their team's Strategy and Leader access codes through the app; codes remain in Supabase's private table.
+- [x] Normal scouting asks whether the robot showed up. A no-show is submitted with empty gameplay values and a note.
+- [x] Starting location and autonomous exit path are selected on a bundled, original top-view field diagram with tappable locations. The app does not bundle an unlicensed internet image.
+- [x] Autonomous scouting records fuels shot, cycles, fuels delivered, intake speed, exit path, and overall performance with descriptions for every scale value.
+- [x] Teleop scouting records shooting while moving, fuels shot, cycles, fuels delivered, intake speed, shooting accuracy, and overall performance with descriptions for every scale value.
+- [x] Defense and climb scouting records yes/no responses, conditional ratings, driver rating, climb level/time, and notes.
+- [x] Leaders can assign specific event matches to their team's Scouter and Strategy accounts; those accounts see only assigned matches.
+- [x] Every user has a profile with their details, submitted forms, name/password updates, account deletion, logout, dark mode, and English/Hebrew preferences.
+- [x] Team logos are cached on disk for faster repeat loading and offline use.
+- [x] Super Scouting includes applicable event-level autonomous exit, shooting-while-moving, and climb-capability observations without adding match-only attendance fields.
+- [x] Competition and schedule screens allow choosing 2026 or 2027 and show Israeli TBA events for that year, including off-season events listed by TBA.
+
+### V3 notes
+- Run the updated `supabase_setup.sql` against the existing project; its additions are forward-compatible and do not require `supabase_reset.sql`.
+- Leader access-code and assignment mutations require an internet connection and are verified by Supabase using the Leader's password. Previously loaded assignments remain available offline, and match scouting continues to save locally before syncing.
+- Deleting an account also deletes that account's submitted match, Super Scouting, and Pit forms and its assignments.

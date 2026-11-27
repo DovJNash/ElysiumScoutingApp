@@ -25,11 +25,10 @@ class PitScoutingService extends ChangeNotifier {
     entries.clear();
     if (raw != null && raw.isNotEmpty) {
       try {
-        final rows =
-            (json.decode(raw) as List).cast<Map<String, dynamic>>();
-        entries.addAll(rows
-            .map((row) => PitScoutingEntry.fromMap(row))
-            .toList());
+        final rows = (json.decode(raw) as List).cast<Map<String, dynamic>>();
+        entries.addAll(
+          rows.map((row) => PitScoutingEntry.fromMap(row)).toList(),
+        );
       } catch (_) {}
     }
     notifyListeners();
@@ -115,14 +114,21 @@ class PitScoutingService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       _cacheKey,
-      json.encode(copy
-          .map((entry) => {
-                ...entry.toSupabaseMap(),
-                'isSynced': entry.isSynced,
-              })
-          .toList()),
+      json.encode(
+        copy
+            .map(
+              (entry) => {...entry.toSupabaseMap(), 'isSynced': entry.isSynced},
+            )
+            .toList(),
+      ),
     );
     notifyListeners();
+  }
+
+  Future<void> removeUserData(String userId) async {
+    await _writeCache(
+      entries.where((entry) => entry.scouterId != userId).toList(),
+    );
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
+
 import '../widgets/localized_text.dart';
 
 extension ColorAlpha on Color {
@@ -113,7 +114,9 @@ class Elysium {
           disabledForegroundColor: muted,
           elevation: 0,
           textStyle: const TextStyle(fontWeight: FontWeight.w800),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -121,7 +124,9 @@ class Elysium {
           foregroundColor: primary,
           side: const BorderSide(color: primary),
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -147,6 +152,75 @@ class Elysium {
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: primary,
         linearTrackColor: border,
+      ),
+    );
+  }
+
+  static ThemeData darkTheme() {
+    const scheme = ColorScheme.dark(
+      primary: Color(0xFF66A9FF),
+      onPrimary: Color(0xFF061A35),
+      secondary: Color(0xFF5CC8F0),
+      onSecondary: Color(0xFF061A35),
+      surface: Color(0xFF14243B),
+      onSurface: Color(0xFFE7EFFB),
+      error: Color(0xFFFF7373),
+      onError: Color(0xFF2A0808),
+      outline: Color(0xFF354B68),
+    );
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: const Color(0xFF0A1526),
+      dividerColor: const Color(0xFF354B68),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF10243E),
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        iconTheme: IconThemeData(color: Colors.white),
+        actionsIconTheme: IconThemeData(color: Colors.white),
+      ),
+      cardTheme: const CardThemeData(
+        color: Color(0xFF14243B),
+        surfaceTintColor: Colors.transparent,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF14243B),
+        labelStyle: const TextStyle(color: Color(0xFFB4C4D9)),
+        hintStyle: TextStyle(color: const Color(0xFFB4C4D9).fade(0.65)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF354B68)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF354B68)),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF66A9FF),
+          foregroundColor: const Color(0xFF061A35),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF8DBEFF),
+          side: const BorderSide(color: Color(0xFF66A9FF)),
+        ),
+      ),
+      sliderTheme: const SliderThemeData(
+        activeTrackColor: Color(0xFF66A9FF),
+        inactiveTrackColor: Color(0xFF354B68),
+        thumbColor: Color(0xFF66A9FF),
+      ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: Color(0xFF66A9FF),
+        linearTrackColor: Color(0xFF354B68),
       ),
     );
   }
@@ -227,7 +301,8 @@ class ElysiumFullLogo extends StatelessWidget {
       height: height,
       fit: BoxFit.contain,
       filterQuality: FilterQuality.high,
-      errorBuilder: (_, __, ___) => ElysiumLogo(size: height * 0.4, onDark: onDark),
+      errorBuilder: (_, __, ___) =>
+          ElysiumLogo(size: height * 0.4, onDark: onDark),
     );
   }
 }
@@ -239,11 +314,13 @@ class ElysiumAppBarTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      const ElysiumLogo(size: 30, wordmark: false, onDark: true),
-      const SizedBox(width: 12),
-      Expanded(child: Text(title, overflow: TextOverflow.ellipsis)),
-    ]);
+    return Row(
+      children: [
+        const ElysiumLogo(size: 30, wordmark: false, onDark: true),
+        const SizedBox(width: 12),
+        Expanded(child: Text(title, overflow: TextOverflow.ellipsis)),
+      ],
+    );
   }
 }
 
@@ -266,14 +343,18 @@ class ElysiumCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       margin: margin,
       elevation: 0,
-      color: color ?? Elysium.surface,
+      color: color ?? (dark ? const Color(0xFF14243B) : Elysium.surface),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: borderColor ?? Elysium.border),
+        side: BorderSide(
+          color:
+              borderColor ?? (dark ? const Color(0xFF354B68) : Elysium.border),
+        ),
       ),
       child: padding == null ? child : Padding(padding: padding!, child: child),
     );
@@ -288,6 +369,7 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -309,7 +391,7 @@ class SectionTitle extends StatelessWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.3,
-                  color: Elysium.navy,
+                  color: dark ? const Color(0xFFE7EFFB) : Elysium.navy,
                 ),
               ),
             ),
@@ -321,7 +403,10 @@ class SectionTitle extends StatelessWidget {
             padding: const EdgeInsets.only(left: 12),
             child: Text(
               subtitle!,
-              style: const TextStyle(fontSize: 12, color: Elysium.muted),
+              style: TextStyle(
+                fontSize: 12,
+                color: dark ? const Color(0xFFB4C4D9) : Elysium.muted,
+              ),
             ),
           ),
         ],

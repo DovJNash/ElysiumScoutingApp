@@ -6,6 +6,7 @@ class SuperScoutingEntry {
   final String scouterName;
   final int teamNum;
   final String auto;
+  final String autoExitPath;
   final String bps;
   final String shootingLimits;
   final String missPercent;
@@ -17,6 +18,8 @@ class SuperScoutingEntry {
   final String bumpSpeed;
   final String driverTechnique;
   final String defenceStyle;
+  final String shootingWhileMoving;
+  final String climbCapability;
   final int durationSeconds;
   final String createdAt;
   final bool isSynced;
@@ -29,6 +32,7 @@ class SuperScoutingEntry {
     required this.scouterName,
     required this.teamNum,
     required this.auto,
+    this.autoExitPath = '',
     required this.bps,
     required this.shootingLimits,
     required this.missPercent,
@@ -40,6 +44,8 @@ class SuperScoutingEntry {
     required this.bumpSpeed,
     required this.driverTechnique,
     required this.defenceStyle,
+    this.shootingWhileMoving = '',
+    this.climbCapability = '',
     required this.durationSeconds,
     required this.createdAt,
     this.isSynced = true,
@@ -64,6 +70,7 @@ class SuperScoutingEntry {
         scouterName: scouterName,
         teamNum: teamNum,
         auto: auto,
+        autoExitPath: autoExitPath,
         bps: bps,
         shootingLimits: shootingLimits,
         missPercent: missPercent,
@@ -75,6 +82,8 @@ class SuperScoutingEntry {
         bumpSpeed: bumpSpeed,
         driverTechnique: driverTechnique,
         defenceStyle: defenceStyle,
+        shootingWhileMoving: shootingWhileMoving,
+        climbCapability: climbCapability,
         durationSeconds: durationSeconds,
         createdAt: createdAt,
         isSynced: isSynced ?? this.isSynced,
@@ -89,6 +98,7 @@ class SuperScoutingEntry {
         'scouterName': scouterName,
         'teamNum': teamNum,
         'auto': auto,
+        'autoExitPath': autoExitPath,
         'bps': bps,
         'shootingLimits': shootingLimits,
         'missPercent': missPercent,
@@ -100,15 +110,21 @@ class SuperScoutingEntry {
         'bumpSpeed': bumpSpeed,
         'DriverTechnique': driverTechnique,
         'defenceStyle': defenceStyle,
+        'shootingWhileMoving': shootingWhileMoving,
+        'climbCapability': climbCapability,
         'durationSeconds': durationSeconds,
         'createdAt': createdAt,
       };
 
-  Map<String, dynamic> toSqliteMap() =>
-      {...toSupabaseMap(), 'isSynced': isSynced ? 1 : 0};
+  Map<String, dynamic> toSqliteMap() => {
+        ...toSupabaseMap(),
+        'isSynced': isSynced ? 1 : 0,
+      };
 
-  factory SuperScoutingEntry.fromMap(Map<String, dynamic> m,
-      {bool? overrideSynced}) {
+  factory SuperScoutingEntry.fromMap(
+    Map<String, dynamic> m, {
+    bool? overrideSynced,
+  }) {
     String s(String k) => (m[k] ?? '').toString();
     return SuperScoutingEntry(
       id: (m['ID'] ?? m['id'] ?? '').toString(),
@@ -118,6 +134,7 @@ class SuperScoutingEntry {
       scouterName: (m['scouterName'] ?? 'Unknown').toString(),
       teamNum: (m['teamNum'] as num?)?.toInt() ?? 0,
       auto: s('auto'),
+      autoExitPath: s('autoExitPath'),
       bps: s('bps'),
       shootingLimits: s('shootingLimits'),
       missPercent: s('missPercent'),
@@ -129,9 +146,11 @@ class SuperScoutingEntry {
       bumpSpeed: s('bumpSpeed'),
       driverTechnique: s('DriverTechnique'),
       defenceStyle: s('defenceStyle'),
+      shootingWhileMoving: s('shootingWhileMoving'),
+      climbCapability: s('climbCapability'),
       durationSeconds: (m['durationSeconds'] as num?)?.toInt() ?? 60,
-      createdAt:
-          (m['createdAt'] ?? DateTime.now().toUtc().toIso8601String()).toString(),
+      createdAt: (m['createdAt'] ?? DateTime.now().toUtc().toIso8601String())
+          .toString(),
       isSynced: overrideSynced ?? ((m['isSynced'] ?? 1) == 1),
     );
   }
@@ -143,6 +162,7 @@ class SuperScoutingEntry {
       'Team': '$teamNum',
       'Scouter': scouterName,
       'Autonomous': v(auto),
+      'Autonomous exit path': v(autoExitPath),
       'Shooting rate (BPS)': v(bps),
       'Shooting mechanics': v(shootingLimits),
       'Missed shots': v(missPercent),
@@ -154,6 +174,8 @@ class SuperScoutingEntry {
       'Bump speed': v(bumpSpeed),
       'Driving technique': v(driverTechnique),
       'Defensive style': v(defenceStyle),
+      'Shooting while moving': v(shootingWhileMoving),
+      'Climb capability': v(climbCapability),
       'Form time': '${durationSeconds}s',
       'Synced': isSynced ? 'Yes' : 'Waiting for internet',
     };

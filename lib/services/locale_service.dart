@@ -59,8 +59,7 @@ class LocaleService extends ChangeNotifier {
     'Looking up team...': 'מחפש את הקבוצה...',
     'Choose a 2027 Israel competition': 'בחירת תחרות בישראל לשנת 2027',
     'Refresh competitions': 'רענון תחרויות',
-    'No 2027 Israel competitions found.':
-        'לא נמצאו תחרויות בישראל לשנת 2027.',
+    'No 2027 Israel competitions found.': 'לא נמצאו תחרויות בישראל לשנת 2027.',
     'Could not load the 2027 Israeli team list. Check the TBA API key and internet connection.':
         'טעינת רשימת הקבוצות בישראל נכשלה. יש לבדוק חיבור לאינטרנט ואת מפתח TBA.',
     'Access your scouting, strategy or lead console':
@@ -84,8 +83,7 @@ class LocaleService extends ChangeNotifier {
     'Role: Scouter': 'תפקיד: סקאוטר',
     'Role: Strategy': 'תפקיד: אסטרטגיה',
     'Role: Leader': 'תפקיד: מנהל',
-    'Enter your name and password to continue':
-        'יש להזין שם וסיסמה כדי להמשיך',
+    'Enter your name and password to continue': 'יש להזין שם וסיסמה כדי להמשיך',
     'Name': 'שם',
     'Password': 'סיסמה',
     'Change': 'שינוי',
@@ -169,7 +167,8 @@ class LocaleService extends ChangeNotifier {
     'Running': 'פועל',
     'Track': 'מדוד',
     'Average': 'ממוצע',
-    'Auto vs Teleop Scoring (top teams)': 'ניקוד אוטונומי וטלאופ (קבוצות מובילות)',
+    'Auto vs Teleop Scoring (top teams)':
+        'ניקוד אוטונומי וטלאופ (קבוצות מובילות)',
     'Overall Rating (top 10)': 'דירוג כללי (10 המובילות)',
     'Scoring & Alliance-Zone Fuel Telemetry (averages)':
         'נתוני ניקוד והעברת דלק לאזור הברית (ממוצעים)',
@@ -181,13 +180,15 @@ class LocaleService extends ChangeNotifier {
     'Driving technique': 'טכניקת נהיגה',
     'Defensive style': 'סגנון הגנה',
     'Autonomous Operation & Routine': 'פעולה ושגרה אוטונומית',
-    'Estimated Shooting Rate (Balls Per Second)': 'קצב ירי משוער (כדורים לשנייה)',
+    'Estimated Shooting Rate (Balls Per Second)':
+        'קצב ירי משוער (כדורים לשנייה)',
     'Shooting Mechanics & Capabilities': 'מנגנון ירי ויכולות',
     'Percentage of Missed Shots (%)': 'אחוז החטאות (%)',
     'Fuel Passing / Alliance Zone Mechanism': 'העברת דלק / מנגנון אזור הברית',
     'Robot Storage Capacity': 'קיבולת אחסון הרובוט',
     'Robot Limitations / Constraints': 'מגבלות הרובוט',
-    'Driver Skill Assessment (Strengths & Weaknesses)': 'הערכת מיומנות הנהג (חוזקות וחולשות)',
+    'Driver Skill Assessment (Strengths & Weaknesses)':
+        'הערכת מיומנות הנהג (חוזקות וחולשות)',
     'Penalties & Foul Tendencies': 'עבירות ונטייה לעבירות',
     'Speed When Crossing the "Bump"': 'מהירות במעבר מעל המכשול',
     'Preferred Driving Techniques / Methods': 'טכניקות ושיטות נהיגה מועדפות',
@@ -291,43 +292,134 @@ class LocaleService extends ChangeNotifier {
     'Save on this device. It will upload when internet returns.':
         'נשמר במכשיר ויסונכרן כשהחיבור יחזור.',
     'Language': 'שפה',
-    'Pit scouting data':
-        'נתוני סקאוטינג פיט',
-    'Match data':
-        'נתוני משחקים',
-    'Pit data':
-        'נתוני פיט',
-    'Only teams with forms':
-        'רק קבוצות עם טפסים',
-    'No pit forms yet':
-        'עדיין אין טפסי פיט',
-    'Refresh':
-        'רענון',
+    'Pit scouting data': 'נתוני סקאוטינג פיט',
+    'Match data': 'נתוני משחקים',
+    'Pit data': 'נתוני פיט',
+    'Only teams with forms': 'רק קבוצות עם טפסים',
+    'No pit forms yet': 'עדיין אין טפסי פיט',
+    'Refresh': 'רענון',
     'Showing saved pit data (no connection)':
         'מוצגים נתוני פיט שמורים (אין חיבור)',
-    'Enter a competition ID and name.':
-        'יש להזין מזהה ושם לתחרות.',
+    'Enter a competition ID and name.': 'יש להזין מזהה ושם לתחרות.',
     'The ID can only contain letters, numbers, - and _ (no spaces).':
         'המזהה יכול להכיל רק אותיות באנגלית, מספרים, - ו־_ (בלי רווחים).',
     'A competition with this ID already exists.':
         'כבר קיימת תחרות עם המזהה הזה.',
-    'Choose at least one team.':
-        'יש לבחור לפחות קבוצה אחת.',
+    'Choose at least one team.': 'יש לבחור לפחות קבוצה אחת.',
     'Could not load the Israeli teams. Type the team numbers instead.':
         'לא ניתן לטעון את הקבוצות מישראל. יש להקליד את מספרי הקבוצות.',
-    'Select all':
-        'בחירת הכול',
-    'Clear':
-        'ניקוי',
-    'Competition created':
-        'התחרות נוצרה',
+    'Select all': 'בחירת הכול',
+    'Clear': 'ניקוי',
+    'Competition created': 'התחרות נוצרה',
     'No connection: the competition exists only on this device until it is created again while online.':
         'אין חיבור: התחרות קיימת רק במכשיר הזה עד שתיווצר שוב כשיש אינטרנט.',
+    'Profile': 'פרופיל',
+    'Account details': 'פרטי חשבון',
+    'Current password': 'סיסמה נוכחית',
+    'New password (leave blank to keep current)':
+        'סיסמה חדשה (השאר ריק כדי לשמור על הקיימת)',
+    'Save changes': 'שמירת שינויים',
+    'Profile updated': 'הפרופיל עודכן',
+    'App preferences': 'העדפות היישום',
+    'Dark mode': 'מצב כהה',
+    'App language': 'שפת היישום',
+    'Log out': 'יציאה',
+    'Your submitted forms': 'הטפסים ששלחת',
+    'No forms submitted yet.': 'עדיין לא נשלחו טפסים.',
+    'Delete account': 'מחיקת חשבון',
+    'This permanently deletes your account and all scouting forms you submitted. This cannot be undone.':
+        'פעולה זו מוחקת לצמיתות את החשבון ואת כל טפסי הסקאוטינג ששלחת. אי אפשר לבטל אותה.',
+    'Did the robot show up to the match?': 'האם הרובוט הגיע למשחק?',
+    'Selecting No will submit this match with empty gameplay values and a note that the robot did not show up.':
+        'בחירה ב״לא״ תשלח את הטופס עם שדות משחק ריקים והערה שהרובוט לא הגיע.',
+    'Robot exit path': 'מסלול יציאת הרובוט',
+    'Tap where the robot exited the blue alliance zone.':
+        'יש לבחור היכן הרובוט יצא מאזור הברית הכחולה.',
+    'Tap the robot starting location in the blue alliance zone.':
+        'יש לבחור את נקודת ההתחלה של הרובוט באזור הברית הכחולה.',
+    'No selection': 'לא נבחר',
+    'Left trench': 'תעלה שמאלית',
+    'Left bumper': 'בליטה שמאלית',
+    'Hub': 'מרכז',
+    'Right bumper': 'בליטה ימנית',
+    'Right trench': 'תעלה ימנית',
+    'None': 'ללא',
+    'How many fuels did the robot shoot?': 'כמה דלקים הרובוט ירה?',
+    'How many cycles did the robot do?': 'כמה מחזורים הרובוט ביצע?',
+    'How many fuels did the robot deliver?': 'כמה דלקים הרובוט העביר?',
+    'How fast was the robot intake?': 'מה הייתה מהירות איסוף הדלקים?',
+    'Overall autonomous performance': 'ביצועי האוטונומי הכלליים',
+    'Can the robot shoot while moving?': 'האם הרובוט יכול לירות תוך כדי תנועה?',
+    'How accurate is the robot shooting?': 'מה דיוק הירי של הרובוט?',
+    'Overall teleop performance': 'ביצועי הטלאופ הכלליים',
+    'Did the robot play defense?': 'האם הרובוט שיחק הגנה?',
+    'How good was the robot in defense?': 'עד כמה הרובוט היה טוב בהגנה?',
+    'Did the robot deal with defense?': 'האם הרובוט התמודד עם הגנה?',
+    'How good was the robot at dealing with defense?':
+        'עד כמה הרובוט התמודד היטב עם הגנה?',
+    'How good was the driver?': 'עד כמה הנהג היה טוב?',
+    'Did the robot climb?': 'האם הרובוט טיפס?',
+    'Climb level': 'רמת טיפוס',
+    'How many seconds did the robot take to climb?':
+        'כמה שניות נדרשו לרובוט לטפס?',
+    'Notes about the match': 'הערות על המשחק',
+    'Add notes about the robot or match...':
+        'הוספת הערות על הרובוט או המשחק...',
+    'Extremely slow': 'איטי באופן קיצוני',
+    'Very slow': 'איטי מאוד',
+    'Slow': 'איטי',
+    'Below average': 'מתחת לממוצע',
+    'Above average': 'מעל הממוצע',
+    'Fast': 'מהיר',
+    'Very fast': 'מהיר מאוד',
+    'Excellent': 'מצוין',
+    'Exceptional': 'יוצא מן הכלל',
+    'Very poor': 'גרוע מאוד',
+    'Poor': 'גרוע',
+    'Good': 'טוב',
+    'Very good': 'טוב מאוד',
+    'Outstanding': 'מעולה',
+    'Leader tools': 'כלי מנהל',
+    'Access codes': 'קודי גישה',
+    'Assignments': 'שיבוצים',
+    'New Strategy code': 'קוד אסטרטגיה חדש',
+    'New Leader code': 'קוד מנהל חדש',
+    'Update access codes': 'עדכון קודי גישה',
+    'Team member': 'חבר צוות',
+    'Select the assigned matches. Unassigned matches remain hidden from that account.':
+        'בחירת המשחקים שחבר הצוות יכול לסקור. משחקים שלא שובצו יוסתרו ממנו.',
+    'No Scouter or Strategy accounts are configured for your team.':
+        'לא מוגדרים חשבונות סקאוטר או אסטרטגיה לצוות שלך.',
+    'No Israeli TBA events are available for this year.':
+        'אין אירועי TBA ישראליים זמינים לשנה זו.',
+    'No matches found for this event.': 'לא נמצאו משחקים באירוע זה.',
+    'No assigned events for this year.': 'אין אירועים ששובצו לשנה זו.',
+    'No Israel events found for this year.': 'לא נמצאו אירועי ישראל לשנה זו.',
+    'Choose an Israel event': 'בחירת אירוע בישראל',
+    'Choose a season': 'בחירת עונה',
+    'Assigned match': 'משחק ששובץ',
+    'Choose a match assigned to you.': 'יש לבחור משחק ששובץ עבורך.',
+    'No matches have been assigned to you.': 'לא שובצו עבורך משחקים.',
+    'No competitions found.': 'לא נמצאו תחרויות.',
+    'Robot did not show up.': 'הרובוט לא הגיע למשחק.',
+    'This name is already taken. Choose another name.':
+        'השם כבר תפוס. יש לבחור שם אחר.',
+    'Only a verified Leader can change team access codes':
+        'רק מנהל מאומת יכול לשנות את קודי הגישה של הצוות.',
+    'Only a verified Leader can view team members':
+        'רק מנהל מאומת יכול לצפות בחברי הצוות.',
+    'Only a verified Leader can assign matches':
+        'רק מנהל מאומת יכול לשבץ משחקים.',
+    'Enter two different, non-empty access codes':
+        'יש להזין שני קודי גישה שונים ולא ריקים.',
+    'This team has not configured role access codes':
+        'לא הוגדרו קודי גישה לצוות זה.',
+    'Choose a Scouter or Strategy user from your team':
+        'יש לבחור משתמש סקאוטר או אסטרטגיה מהצוות שלך.',
   };
 
   String? _translateDynamic(String value) {
-    final unlisted =
-        RegExp(r'^Team (\d+) \(not in list\)$').firstMatch(value);
+    final unlisted = RegExp(r'^Team (\d+) \(not in list\)$').firstMatch(value);
     if (unlisted != null) {
       return 'קבוצה ${unlisted.group(1)} (לא ברשימה)';
     }
@@ -337,9 +429,8 @@ class LocaleService extends ChangeNotifier {
           ? 'טופס פיט אחד'
           : '${pitForms.group(1)} טפסי פיט';
     }
-    final pitSummary =
-        RegExp(r'^(\d+) of (\d+) teams scouted • (\d+) forms?$')
-            .firstMatch(value);
+    final pitSummary = RegExp(r'^(\d+) of (\d+) teams scouted • (\d+) forms?$')
+        .firstMatch(value);
     if (pitSummary != null) {
       return '${pitSummary.group(1)} מתוך ${pitSummary.group(2)} קבוצות '
           'נסרקו • ${pitSummary.group(3)} טפסים';
@@ -399,8 +490,12 @@ class LocaleService extends ChangeNotifier {
     }
     final count = RegExp(r'^(\d+) teams$').firstMatch(value);
     if (count != null) return '${count.group(1)} קבוצות';
-    final matches = RegExp(r'^(\d+) matches across competitions$')
-        .firstMatch(value);
+    final fuels = RegExp(r'^(\d+) fuels?$').firstMatch(value);
+    if (fuels != null) return '${fuels.group(1)} דלקים';
+    final cycles = RegExp(r'^(\d+) cycles completed$').firstMatch(value);
+    if (cycles != null) return '${cycles.group(1)} מחזורים הושלמו';
+    final matches =
+        RegExp(r'^(\d+) matches across competitions$').firstMatch(value);
     if (matches != null) {
       return '${matches.group(1)} משחקים מכל התחרויות';
     }

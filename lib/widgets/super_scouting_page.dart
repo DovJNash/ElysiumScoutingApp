@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import 'package:uuid/uuid.dart';
+
 import '../models/scouting_form_config.dart';
 import '../models/super_scouting_entry.dart';
 import '../models/team_model.dart';
@@ -31,7 +32,7 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
 
   final Map<String, TextEditingController> _c = {
     for (final f in SuperScoutingFormConfig.fields)
-      f.key: TextEditingController()
+      f.key: TextEditingController(),
   };
 
   // Keeps what has been typed when the user switches to another tab.
@@ -69,9 +70,13 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
     final team = _team!;
 
     final uniqueKey = SuperScoutingEntry.buildUniqueKey(
-        competition: comp.id, teamNum: team.number, scouterId: user.id);
-    final exists = DataRepository.instance.superScouting
-        .any((e) => e.uniqueKey == uniqueKey);
+      competition: comp.id,
+      teamNum: team.number,
+      scouterId: user.id,
+    );
+    final exists = DataRepository.instance.superScouting.any(
+      (e) => e.uniqueKey == uniqueKey,
+    );
     if (exists) {
       final overwrite = await confirmDialog(
         context,
@@ -97,6 +102,7 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
       scouterName: user.name,
       teamNum: team.number,
       auto: t('auto'),
+      autoExitPath: t('autoExitPath'),
       bps: t('bps'),
       shootingLimits: t('shootingLimits'),
       missPercent: t('missPercent'),
@@ -108,6 +114,8 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
       bumpSpeed: t('bumpSpeed'),
       driverTechnique: t('DriverTechnique'),
       defenceStyle: t('defenceStyle'),
+      shootingWhileMoving: t('shootingWhileMoving'),
+      climbCapability: t('climbCapability'),
       durationSeconds: duration,
       createdAt: DateTime.now().toUtc().toIso8601String(),
       isSynced: false,
@@ -124,11 +132,15 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
       _submitting = false;
       _team = null;
     });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(synced
-          ? 'Super Scouting for Team ${team.number} saved & synced!'
-          : 'Saved on this device. It will upload when internet returns.'),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          synced
+              ? 'Super Scouting for Team ${team.number} saved & synced!'
+              : 'Saved on this device. It will upload when internet returns.',
+        ),
+      ),
+    );
   }
 
   @override
@@ -156,39 +168,47 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
             color: Elysium.surface,
             border: Border(bottom: BorderSide(color: Elysium.border)),
           ),
-          child: Row(children: [
-            TextButton.icon(
-              onPressed: () => setState(() => _team = null),
-              icon: const Icon(Icons.arrow_back_rounded),
-              label: const Text('Back'),
-            ),
-            TeamLogo(team: team, size: 32),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text('${team.number} (${team.name})',
+          child: Row(
+            children: [
+              TextButton.icon(
+                onPressed: () => setState(() => _team = null),
+                icon: const Icon(Icons.arrow_back_rounded),
+                label: const Text('Back'),
+              ),
+              TeamLogo(team: team, size: 32),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${team.number} (${team.name})',
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 16)),
-            ),
-          ]),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              ...SuperScoutingFormConfig.fields.map((f) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: TextField(
-                      controller: _c[f.key],
-                      maxLines: f.maxLines,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        labelText: LocaleService.instance.text(f.label),
-                        hintText: LocaleService.instance.text(f.hint),
-                        alignLabelWithHint: true,
-                      ),
+              ...SuperScoutingFormConfig.fields.map(
+                (f) => Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: TextField(
+                    controller: _c[f.key],
+                    maxLines: f.maxLines,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      labelText: LocaleService.instance.text(f.label),
+                      hintText: LocaleService.instance.text(f.hint),
+                      alignLabelWithHint: true,
                     ),
-                  )),
+                  ),
+                ),
+              ),
               const SizedBox(height: 4),
               SizedBox(
                 height: 52,
@@ -196,8 +216,9 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
                   onPressed: _submitting ? null : _submit,
                   icon: const Icon(Icons.cloud_upload_rounded),
                   label: Text(
-                      _submitting ? 'Submitting...' : 'Submit Super Scouting',
-                      style: const TextStyle(fontSize: 16)),
+                    _submitting ? 'Submitting...' : 'Submit Super Scouting',
+                    style: const TextStyle(fontSize: 16),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

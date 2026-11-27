@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import 'package:uuid/uuid.dart';
+
 import '../models/scouting_form_config.dart';
 import '../models/super_scouting_entry.dart';
 import '../models/team_model.dart';
@@ -18,6 +19,7 @@ import '../models/pit_scouting_entry.dart';
 import '../services/pit_scouting_service.dart';
 import 'scouter_home_screen.dart';
 import '../widgets/localized_text.dart';
+import '../widgets/profile_page.dart';
 
 class StrategyHomeScreen extends StatefulWidget {
   const StrategyHomeScreen({super.key});
@@ -30,6 +32,8 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
   List<CompetitionInfo> _competitions = [];
+  int _year = 2027;
+  bool _loadingCompetitions = true;
 
   CompetitionInfo? _comp;
   TeamInfo? _team;
@@ -49,7 +53,8 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
   };
 
   final Map<String, TextEditingController> _c = {
-    for (final f in SuperScoutingFormConfig.fields) f.key: TextEditingController()
+    for (final f in SuperScoutingFormConfig.fields)
+      f.key: TextEditingController(),
   };
 
   @override
@@ -59,10 +64,51 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
       ..addListener(() {
         if (!_tabs.indexIsChanging) setState(() {});
       });
-    CompetitionRepository.loadCompetitions().then((c) {
-      if (mounted) setState(() => _competitions = c);
+    _loadCompetitions();
+  }
+
+  Future<void> _loadCompetitions() async {
+    setState(() => _loadingCompetitions = true);
+    final competitions = await CompetitionRepository.loadCompetitions(
+      year: _year,
+    );
+    if (!mounted) return;
+    setState(() {
+      _competitions = competitions;
+      _loadingCompetitions = false;
+      if (_comp != null && !_competitions.any((item) => item.id == _comp!.id)) {
+        _comp = null;
+        _team = null;
+      }
+      if (_pitComp != null &&
+          !_competitions.any((item) => item.id == _pitComp!.id)) {
+        _pitComp = null;
+        _pitTeam = null;
+      }
     });
   }
+
+  Widget _yearSelector() => Row(
+        children: [
+          const Expanded(child: SectionTitle('Choose a season')),
+          DropdownButton<int>(
+            value: _year,
+            items: const [2026, 2027]
+                .map((year) =>
+                    DropdownMenuItem(value: year, child: Text('$year')))
+                .toList(),
+            onChanged: (year) {
+              if (year == null) return;
+              setState(() {
+                _year = year;
+                _comp = null;
+                _pitComp = null;
+              });
+              _loadCompetitions();
+            },
+          ),
+        ],
+      );
 
   @override
   void dispose() {
@@ -99,9 +145,13 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
     final team = _team!;
 
     final uniqueKey = SuperScoutingEntry.buildUniqueKey(
-        competition: comp.id, teamNum: team.number, scouterId: user.id);
-    final exists = DataRepository.instance.superScouting
-        .any((e) => e.uniqueKey == uniqueKey);
+      competition: comp.id,
+      teamNum: team.number,
+      scouterId: user.id,
+    );
+    final exists = DataRepository.instance.superScouting.any(
+      (e) => e.uniqueKey == uniqueKey,
+    );
     if (exists) {
       final overwrite = await confirmDialog(
         context,
@@ -127,6 +177,7 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
       scouterName: user.name,
       teamNum: team.number,
       auto: t('auto'),
+      autoExitPath: t('autoExitPath'),
       bps: t('bps'),
       shootingLimits: t('shootingLimits'),
       missPercent: t('missPercent'),
@@ -138,6 +189,8 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
       bumpSpeed: t('bumpSpeed'),
       driverTechnique: t('DriverTechnique'),
       defenceStyle: t('defenceStyle'),
+      shootingWhileMoving: t('shootingWhileMoving'),
+      climbCapability: t('climbCapability'),
       durationSeconds: duration,
       createdAt: DateTime.now().toUtc().toIso8601String(),
       isSynced: false,
@@ -156,11 +209,15 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
       _submitting = false;
       _team = null;
     });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(synced
-          ? 'Super Scouting for Team ${team.number} saved & synced!'
-          : 'Saved on this device. It will upload when internet returns.'),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          synced
+              ? 'Super Scouting for Team ${team.number} saved & synced!'
+              : 'Saved on this device. It will upload when internet returns.',
+        ),
+      ),
+    );
   }
 
   @override
@@ -179,13 +236,17 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
             IconButton(
               tooltip: 'Match Scouting',
               onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const ScouterHomeScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const ScouterHomeScreen()),
               ),
               icon: const Icon(Icons.assignment_rounded),
             ),
             const SyncStatusBadge(),
+            IconButton(
+              tooltip: 'Profile',
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const ProfilePage())),
+              icon: const Icon(Icons.account_circle_rounded),
+            ),
             IconButton(
               tooltip: 'My Reports',
               onPressed: () => showMySubmissionsSheet(context, superMode: true),
@@ -204,7 +265,10 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,
             tabs: const [
-              Tab(icon: Icon(Icons.assignment_ind_rounded), text: 'Super Scouting'),
+              Tab(
+                icon: Icon(Icons.assignment_ind_rounded),
+                text: 'Super Scouting',
+              ),
               Tab(icon: Icon(Icons.bar_chart_rounded), text: 'Data'),
               Tab(icon: Icon(Icons.calendar_month_rounded), text: 'Schedule'),
               Tab(icon: Icon(Icons.handyman_rounded), text: 'Pit Scouting'),
@@ -216,7 +280,7 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
           children: [
             _superTab(),
             const AnalyticsDashboard(),
-            const MatchSchedulePage(),
+            const MatchSchedulePage(filterToMyAssignments: true),
             _pitTab(),
           ],
         ),
@@ -261,31 +325,37 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
       _pitTeam = null;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pit scouting saved locally and synced when available')),
+      const SnackBar(
+        content: Text('Pit scouting saved locally and synced when available'),
+      ),
     );
   }
 
   Widget _pitTab() {
-    if (_competitions.isEmpty) {
+    if (_loadingCompetitions) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_pitComp == null) {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _yearSelector(),
           const SectionTitle('Select Competition for Pit Scouting'),
           const SizedBox(height: 14),
-          ..._competitions.map((competition) => ElysiumCard(
-                margin: const EdgeInsets.only(bottom: 10),
-                child: ListTile(
-                  title: Text(competition.name,
-                      style: const TextStyle(fontWeight: FontWeight.w800)),
-                  subtitle: Text('${competition.teams.length} teams'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () =>
-                      setState(() => _pitComp = competition),
+          ..._competitions.map(
+            (competition) => ElysiumCard(
+              margin: const EdgeInsets.only(bottom: 10),
+              child: ListTile(
+                title: Text(
+                  competition.name,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
-              )),
+                subtitle: Text('${competition.teams.length} teams'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => setState(() => _pitComp = competition),
+              ),
+            ),
+          ),
         ],
       );
     }
@@ -305,16 +375,31 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
     }
     final team = _pitTeam!;
     final fields = [
-      ('autonomous', 'Autonomous types',
-          'Describe the robot autonomous routines and reliability'),
-      ('strengths', 'What the team does well',
-          'Describe its strongest scoring, cycling or defense capabilities'),
-      ('difficulties', 'What is difficult for the team',
-          'Describe weaknesses, limitations and failure points'),
-      ('defense', 'How the team plays defense',
-          'Describe defensive style, pressure and reliability'),
-      ('notes', 'How is the team different',
-          'Anything else that makes this robot distinct'),
+      (
+        'autonomous',
+        'Autonomous types',
+        'Describe the robot autonomous routines and reliability',
+      ),
+      (
+        'strengths',
+        'What the team does well',
+        'Describe its strongest scoring, cycling or defense capabilities',
+      ),
+      (
+        'difficulties',
+        'What is difficult for the team',
+        'Describe weaknesses, limitations and failure points',
+      ),
+      (
+        'defense',
+        'How the team plays defense',
+        'Describe defensive style, pressure and reliability',
+      ),
+      (
+        'notes',
+        'How is the team different',
+        'Anything else that makes this robot distinct',
+      ),
     ];
     return Column(
       children: [
@@ -334,8 +419,10 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
               TeamLogo(team: team, size: 32),
               const SizedBox(width: 8),
               Expanded(
-                child: Text('Pit scouting • Team ${team.number}',
-                    style: const TextStyle(fontWeight: FontWeight.w800)),
+                child: Text(
+                  'Pit scouting • Team ${team.number}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
               ),
             ],
           ),
@@ -344,27 +431,29 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              ...fields.map((field) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: TextField(
-                      controller: _pit[field.$1],
-                      maxLines: 4,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        labelText: LocaleService.instance.text(field.$2),
-                        hintText: LocaleService.instance.text(field.$3),
-                        alignLabelWithHint: true,
-                      ),
+              ...fields.map(
+                (field) => Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: TextField(
+                    controller: _pit[field.$1],
+                    maxLines: 4,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      labelText: LocaleService.instance.text(field.$2),
+                      hintText: LocaleService.instance.text(field.$3),
+                      alignLabelWithHint: true,
                     ),
-                  )),
+                  ),
+                ),
+              ),
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: _pitSubmitting ? null : _submitPit,
                   icon: const Icon(Icons.cloud_upload_rounded),
-                  label: Text(_pitSubmitting
-                      ? 'Submitting...'
-                      : 'Submit Pit Scouting'),
+                  label: Text(
+                    _pitSubmitting ? 'Submitting...' : 'Submit Pit Scouting',
+                  ),
                 ),
               ),
             ],
@@ -375,23 +464,31 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
   }
 
   Widget _superTab() {
-    if (_competitions.isEmpty) return const Center(child: CircularProgressIndicator());
+    if (_loadingCompetitions) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     if (_comp == null) {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _yearSelector(),
           const SectionTitle('Select Competition for Super Scouting'),
           const SizedBox(height: 14),
-          ..._competitions.map((comp) => ElysiumCard(
-                margin: const EdgeInsets.only(bottom: 10),
-                child: ListTile(
-                  title: Text(comp.name, style: const TextStyle(fontWeight: FontWeight.w800)),
-                  subtitle: Text('${comp.teams.length} teams'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => setState(() => _comp = comp),
+          ..._competitions.map(
+            (comp) => ElysiumCard(
+              margin: const EdgeInsets.only(bottom: 10),
+              child: ListTile(
+                title: Text(
+                  comp.name,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
-              )),
+                subtitle: Text('${comp.teams.length} teams'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => setState(() => _comp = comp),
+              ),
+            ),
+          ),
         ],
       );
     }
@@ -420,46 +517,57 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
             color: Elysium.surface,
             border: Border(bottom: BorderSide(color: Elysium.border)),
           ),
-          child: Row(children: [
-            TextButton.icon(
-              onPressed: _goBack,
-              icon: const Icon(Icons.arrow_back_rounded),
-              label: const Text('Back'),
-            ),
-            TeamLogo(team: team, size: 32),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text('${team.number} (${team.name})',
+          child: Row(
+            children: [
+              TextButton.icon(
+                onPressed: _goBack,
+                icon: const Icon(Icons.arrow_back_rounded),
+                label: const Text('Back'),
+              ),
+              TeamLogo(team: team, size: 32),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${team.number} (${team.name})',
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            ),
-          ]),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              ...SuperScoutingFormConfig.fields.map((f) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: TextField(
-                      controller: _c[f.key],
-                      maxLines: f.maxLines,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        labelText: LocaleService.instance.text(f.label),
-                        hintText: LocaleService.instance.text(f.hint),
-                        alignLabelWithHint: true,
-                      ),
+              ...SuperScoutingFormConfig.fields.map(
+                (f) => Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: TextField(
+                    controller: _c[f.key],
+                    maxLines: f.maxLines,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      labelText: LocaleService.instance.text(f.label),
+                      hintText: LocaleService.instance.text(f.hint),
+                      alignLabelWithHint: true,
                     ),
-                  )),
+                  ),
+                ),
+              ),
               const SizedBox(height: 4),
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: _submitting ? null : _submit,
                   icon: const Icon(Icons.cloud_upload_rounded),
-                  label: Text(_submitting ? 'Submitting...' : 'Submit Super Scouting',
-                      style: const TextStyle(fontSize: 16)),
+                  label: Text(
+                    _submitting ? 'Submitting...' : 'Submit Super Scouting',
+                    style: const TextStyle(fontSize: 16),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

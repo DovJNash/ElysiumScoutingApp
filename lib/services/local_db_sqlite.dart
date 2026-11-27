@@ -1,5 +1,6 @@
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
+
 import '../config/supabase_config.dart';
 import 'local_db_service.dart';
 
@@ -14,11 +15,10 @@ class SqliteLocalDb extends LocalDbService {
   Future<void> initialize() async {
     if (_db != null) return;
     final dir = await getDatabasesPath();
-    final path =
-        p.join(dir, 'frc_scouting_${SupabaseConfig.projectRef}.db');
+    final path = p.join(dir, 'frc_scouting_${SupabaseConfig.projectRef}.db');
     _db = await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE scouting_local (
@@ -29,6 +29,8 @@ class SqliteLocalDb extends LocalDbService {
             scouterName TEXT NOT NULL,
             teamNum INTEGER NOT NULL,
             matchNum INTEGER NOT NULL,
+            matchLevel TEXT NOT NULL DEFAULT 'qm',
+            matchSet INTEGER NOT NULL DEFAULT 1,
             startPos TEXT NOT NULL,
             exitPos TEXT NOT NULL,
             autoShoot INTEGER NOT NULL,
@@ -38,6 +40,24 @@ class SqliteLocalDb extends LocalDbService {
             opponentCount INTEGER NOT NULL,
             teleopShoot INTEGER NOT NULL,
             teleopIntake INTEGER NOT NULL,
+            robotShowed INTEGER NOT NULL DEFAULT 1,
+            autoCycles INTEGER NOT NULL DEFAULT 0,
+            autoFuelsDelivered INTEGER NOT NULL DEFAULT 0,
+            autoIntakeSpeed INTEGER NOT NULL DEFAULT 0,
+            autoPerformance INTEGER NOT NULL DEFAULT 0,
+            teleopCanShootMoving INTEGER NOT NULL DEFAULT 0,
+            teleopCycles INTEGER NOT NULL DEFAULT 0,
+            teleopFuelsDelivered INTEGER NOT NULL DEFAULT 0,
+            teleopIntakeSpeed INTEGER NOT NULL DEFAULT 0,
+            teleopAccuracy INTEGER NOT NULL DEFAULT 0,
+            teleopPerformance INTEGER NOT NULL DEFAULT 0,
+            playedDefense INTEGER NOT NULL DEFAULT 0,
+            defenseRating INTEGER NOT NULL DEFAULT 0,
+            dealtWithDefense INTEGER NOT NULL DEFAULT 0,
+            defenseResilience INTEGER NOT NULL DEFAULT 0,
+            climbed INTEGER NOT NULL DEFAULT 0,
+            climbLevel TEXT NOT NULL DEFAULT '',
+            climbTimeSeconds INTEGER NOT NULL DEFAULT 0,
             doingDefence INTEGER NOT NULL,
             standDefence INTEGER NOT NULL,
             driverSkill INTEGER NOT NULL,
@@ -56,6 +76,7 @@ class SqliteLocalDb extends LocalDbService {
             scouterName TEXT NOT NULL,
             teamNum INTEGER NOT NULL,
             auto TEXT NOT NULL,
+            autoExitPath TEXT NOT NULL DEFAULT '',
             bps TEXT NOT NULL,
             shootingLimits TEXT NOT NULL,
             missPercent TEXT NOT NULL,
@@ -67,6 +88,8 @@ class SqliteLocalDb extends LocalDbService {
             bumpSpeed TEXT NOT NULL,
             DriverTechnique TEXT NOT NULL,
             defenceStyle TEXT NOT NULL,
+            shootingWhileMoving TEXT NOT NULL DEFAULT '',
+            climbCapability TEXT NOT NULL DEFAULT '',
             durationSeconds INTEGER NOT NULL,
             createdAt TEXT NOT NULL,
             isSynced INTEGER NOT NULL DEFAULT 0
@@ -79,6 +102,47 @@ class SqliteLocalDb extends LocalDbService {
             requesterId TEXT NOT NULL
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          const scoutingColumns = {
+            'matchLevel': "TEXT NOT NULL DEFAULT 'qm'",
+            'matchSet': 'INTEGER NOT NULL DEFAULT 1',
+            'robotShowed': 'INTEGER NOT NULL DEFAULT 1',
+            'autoCycles': 'INTEGER NOT NULL DEFAULT 0',
+            'autoFuelsDelivered': 'INTEGER NOT NULL DEFAULT 0',
+            'autoIntakeSpeed': 'INTEGER NOT NULL DEFAULT 0',
+            'autoPerformance': 'INTEGER NOT NULL DEFAULT 0',
+            'teleopCanShootMoving': 'INTEGER NOT NULL DEFAULT 0',
+            'teleopCycles': 'INTEGER NOT NULL DEFAULT 0',
+            'teleopFuelsDelivered': 'INTEGER NOT NULL DEFAULT 0',
+            'teleopIntakeSpeed': 'INTEGER NOT NULL DEFAULT 0',
+            'teleopAccuracy': 'INTEGER NOT NULL DEFAULT 0',
+            'teleopPerformance': 'INTEGER NOT NULL DEFAULT 0',
+            'playedDefense': 'INTEGER NOT NULL DEFAULT 0',
+            'defenseRating': 'INTEGER NOT NULL DEFAULT 0',
+            'dealtWithDefense': 'INTEGER NOT NULL DEFAULT 0',
+            'defenseResilience': 'INTEGER NOT NULL DEFAULT 0',
+            'climbed': 'INTEGER NOT NULL DEFAULT 0',
+            'climbLevel': "TEXT NOT NULL DEFAULT ''",
+            'climbTimeSeconds': 'INTEGER NOT NULL DEFAULT 0',
+          };
+          for (final entry in scoutingColumns.entries) {
+            await db.execute(
+              'ALTER TABLE scouting_local ADD COLUMN ${entry.key} ${entry.value}',
+            );
+          }
+          const superColumns = {
+            'autoExitPath': "TEXT NOT NULL DEFAULT ''",
+            'shootingWhileMoving': "TEXT NOT NULL DEFAULT ''",
+            'climbCapability': "TEXT NOT NULL DEFAULT ''",
+          };
+          for (final entry in superColumns.entries) {
+            await db.execute(
+              'ALTER TABLE super_scouting_local ADD COLUMN ${entry.key} ${entry.value}',
+            );
+          }
+        }
       },
     );
   }
@@ -93,22 +157,33 @@ class SqliteLocalDb extends LocalDbService {
 
   @override
   Future<void> putRow(LocalTable table, Map<String, dynamic> row) async {
-    await _d.insert(_name(table), row,
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await _d.insert(
+      _name(table),
+      row,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getRows(LocalTable table,
-      {bool unsyncedOnly = false}) async {
-    final rows = await _d.query(_name(table),
-        where: unsyncedOnly ? 'isSynced = 0' : null);
+  Future<List<Map<String, dynamic>>> getRows(
+    LocalTable table, {
+    bool unsyncedOnly = false,
+  }) async {
+    final rows = await _d.query(
+      _name(table),
+      where: unsyncedOnly ? 'isSynced = 0' : null,
+    );
     return rows.map((r) => Map<String, dynamic>.from(r)).toList();
   }
 
   @override
   Future<void> setSynced(LocalTable table, String id) async {
-    await _d.update(_name(table), {'isSynced': 1},
-        where: 'ID = ?', whereArgs: [id]);
+    await _d.update(
+      _name(table),
+      {'isSynced': 1},
+      where: 'ID = ?',
+      whereArgs: [id],
+    );
   }
 
   @override
@@ -117,24 +192,57 @@ class SqliteLocalDb extends LocalDbService {
   }
 
   @override
-  Future<bool> replaceSyncedRows(LocalTable table,
-      List<Map<String, dynamic>> serverRows, int expectedVersion) {
+  Future<void> removeUserRecords(String userId) async {
+    recordLocalWrite();
+    await _d.transaction((txn) async {
+      await txn.delete(
+        'scouting_local',
+        where: 'scouterId = ?',
+        whereArgs: [userId],
+      );
+      await txn.delete(
+        'super_scouting_local',
+        where: 'scouterId = ?',
+        whereArgs: [userId],
+      );
+      await txn.delete(
+        'pending_deletions',
+        where: 'requesterId = ?',
+        whereArgs: [userId],
+      );
+    });
+  }
+
+  @override
+  Future<bool> replaceSyncedRows(
+    LocalTable table,
+    List<Map<String, dynamic>> serverRows,
+    int expectedVersion,
+  ) {
     final name = _name(table);
     return _d.transaction<bool>((txn) async {
       if (writeVersion != expectedVersion) return false;
 
-      final pending = (await txn.query('pending_deletions',
-              columns: ['recordId']))
+      final pending = (await txn.query(
+        'pending_deletions',
+        columns: ['recordId'],
+      ))
           .map((e) => e['recordId'] as String)
           .toSet();
-      final unsyncedKeys = (await txn.query(name,
-              columns: ['uniqueKey'], where: 'isSynced = 0'))
+      final unsyncedKeys = (await txn.query(
+        name,
+        columns: ['uniqueKey'],
+        where: 'isSynced = 0',
+      ))
           .map((e) => e['uniqueKey'] as String)
           .toSet();
       final remoteIds = serverRows.map((r) => r['ID'].toString()).toSet();
 
-      final synced =
-          await txn.query(name, columns: ['ID'], where: 'isSynced = 1');
+      final synced = await txn.query(
+        name,
+        columns: ['ID'],
+        where: 'isSynced = 1',
+      );
       for (final s in synced) {
         final id = s['ID'] as String;
         if (!remoteIds.contains(id)) {
@@ -153,15 +261,19 @@ class SqliteLocalDb extends LocalDbService {
   }
 
   @override
-  Future<void> putDeletion(
-      {required String recordId,
-      required String tableName,
-      required String requesterId}) async {
+  Future<void> putDeletion({
+    required String recordId,
+    required String tableName,
+    required String requesterId,
+  }) async {
     await _d.insert(
-      'pending_deletions',
-      {'recordId': recordId, 'tableName': tableName, 'requesterId': requesterId},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+        'pending_deletions',
+        {
+          'recordId': recordId,
+          'tableName': tableName,
+          'requesterId': requesterId,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   @override
@@ -172,7 +284,10 @@ class SqliteLocalDb extends LocalDbService {
 
   @override
   Future<void> dropDeletion(String recordId) async {
-    await _d.delete('pending_deletions',
-        where: 'recordId = ?', whereArgs: [recordId]);
+    await _d.delete(
+      'pending_deletions',
+      where: 'recordId = ?',
+      whereArgs: [recordId],
+    );
   }
 }
