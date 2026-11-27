@@ -52,7 +52,7 @@ The app is **offline-first**: it works without an internet connection, and syncs
 
 ### 1.1 The Blue Alliance
 The TBA key belongs on the server, not in the APK. In Supabase Dashboard, open
-**Edge Functions -> Secrets** and add `TBA_API_KEY` with your TBA read key.
+**Edge Functions -> Secrets** and add `tba_api_key` with your TBA read key.
 Then deploy the read-only, allowlisted proxy from the repository root:
 ```
 supabase login
@@ -63,6 +63,10 @@ Deploy this once per Supabase project. The app and every installed APK use the
 proxy, so users do not need to supply a TBA key and it is not embedded in the
 app. The proxy only permits 2026/2027 Israeli events, districts, rosters,
 matches, and individual team lookups.
+If the app reports that `tba-proxy` was not found, deploy it to the same
+Supabase project configured in `lib/config/supabase_config.dart`. Previously
+cached event, team, and schedule data remains available while the proxy is
+unavailable.
 
 The app caches Israeli TBA events, teams, and match schedules locally for
 offline use, and caches team logos on disk. Registration loads Israeli district

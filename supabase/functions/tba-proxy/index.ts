@@ -24,9 +24,10 @@ Deno.serve(async (request: Request) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  const apiKey = Deno.env.get("TBA_API_KEY");
+  const apiKey =
+    Deno.env.get("tba_api_key") ?? Deno.env.get("TBA_API_KEY");
   if (!apiKey) {
-    return jsonResponse({ error: "TBA_API_KEY is not configured" }, 500);
+    return jsonResponse({ error: "tba_api_key is not configured" }, 500);
   }
 
   let path: unknown;

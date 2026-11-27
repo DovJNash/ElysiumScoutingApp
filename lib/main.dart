@@ -74,6 +74,7 @@ class FrcScoutingApp extends StatelessWidget {
                 : Elysium.darkTheme().textTheme,
           ),
           themeMode: AppSettingsService.instance.themeMode,
+          themeAnimationDuration: Duration.zero,
           builder: (context, child) => Directionality(
             textDirection: locale.languageCode == 'he'
                 ? TextDirection.rtl

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Text;
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../services/app_settings_service.dart';
 import '../services/locale_service.dart';
 import '../services/tba_service.dart';
 import '../theme/elysium_theme.dart';
@@ -52,7 +53,8 @@ class _AuthScreenState extends State<AuthScreen> {
     });
     try {
       if (_view == _AuthView.loginForm) {
-        await AuthService.instance.login(name: _name.text, password: _password.text);
+        await AuthService.instance
+            .login(name: _name.text, password: _password.text);
       } else {
         await AuthService.instance.signUp(
           name: _name.text,
@@ -97,7 +99,8 @@ class _AuthScreenState extends State<AuthScreen> {
         setState(() {
           _israeliTeams = cached;
           _error = cached.isEmpty
-              ? 'Could not load the 2027 Israeli team list. Check the TBA API key and internet connection.'
+              ? 'Could not load the 2027 Israeli team list. '
+                  '${e.toString().replaceFirst('Bad state: ', '')}'
               : null;
         });
       }
@@ -144,10 +147,10 @@ class _AuthScreenState extends State<AuthScreen> {
         _error = null;
         _view = _AuthView.roleSelect;
       });
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         setState(() {
-          _error = 'Could not look up the team name. Please enter it manually.';
+          _error = error.toString().replaceFirst('Bad state: ', '');
         });
       }
     } finally {
@@ -164,8 +167,7 @@ class _AuthScreenState extends State<AuthScreen> {
         if (didPop) return;
         if (_view == _AuthView.signUpForm) {
           _go(_AuthView.roleSelect);
-        } else if (_view == _AuthView.roleSelect &&
-            _selectedTeam != null) {
+        } else if (_view == _AuthView.roleSelect && _selectedTeam != null) {
           _go(_AuthView.teamSelect);
         } else {
           _go(_AuthView.splitChoice);
@@ -251,6 +253,25 @@ class _AuthScreenState extends State<AuthScreen> {
               right: 8,
               top: 4,
               child: LocaleSwitchButton(),
+            ),
+            Positioned(
+              left: 8,
+              top: 4,
+              child: IconButton(
+                tooltip: AppSettingsService.instance.isDarkMode
+                    ? 'Switch to light mode'
+                    : 'Switch to dark mode',
+                onPressed: () async {
+                  final settings = AppSettingsService.instance;
+                  await settings.setDarkMode(!settings.isDarkMode);
+                },
+                icon: Icon(
+                  AppSettingsService.instance.isDarkMode
+                      ? Icons.light_mode_rounded
+                      : Icons.dark_mode_rounded,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ],
         ),
@@ -380,8 +401,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
-                    onPressed:
-                        _resolvingManualTeam ? null : _selectManualTeam,
+                    onPressed: _resolvingManualTeam ? null : _selectManualTeam,
                     icon: _resolvingManualTeam
                         ? const SizedBox(
                             width: 18,
@@ -542,8 +562,12 @@ class _AuthScreenState extends State<AuthScreen> {
             }
 
             return compact
-                ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: spaced)
-                : Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: spaced);
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: spaced)
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: spaced);
           }),
         ),
       ],
@@ -552,6 +576,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Widget _credentials(bool isSignUp) {
     final needsCode = isSignUp && _role != UserRole.scouter;
+    final titleColor = Theme.of(context).colorScheme.onSurface;
     return Center(
       key: ValueKey(isSignUp ? 'signup' : 'login'),
       child: ConstrainedBox(
@@ -559,21 +584,28 @@ class _AuthScreenState extends State<AuthScreen> {
         child: SingleChildScrollView(
           child: ElysiumCard(
             padding: const EdgeInsets.all(22),
-            borderColor: isSignUp ? Elysium.roleColor(_role).fade(0.6) : Elysium.border,
+            borderColor:
+                isSignUp ? Elysium.roleColor(_role).fade(0.6) : Elysium.border,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton.icon(
-                    onPressed: () => _go(isSignUp ? _AuthView.roleSelect : _AuthView.splitChoice),
+                    onPressed: () => _go(isSignUp
+                        ? _AuthView.roleSelect
+                        : _AuthView.splitChoice),
                     icon: const Icon(Icons.arrow_back_rounded),
                     label: const Text('Back'),
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(isSignUp ? 'Create $_role Account' : 'Welcome Back',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Elysium.navy)),
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: titleColor,
+                    )),
                 const SizedBox(height: 4),
                 Text(
                   isSignUp
@@ -648,7 +680,10 @@ class _AuthScreenState extends State<AuthScreen> {
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: Elysium.danger.fade(0.4)),
                     ),
-                    child: Text(_error!, style: const TextStyle(color: Elysium.danger, fontWeight: FontWeight.w600)),
+                    child: Text(_error!,
+                        style: const TextStyle(
+                            color: Elysium.danger,
+                            fontWeight: FontWeight.w600)),
                   ),
                 ],
                 const SizedBox(height: 22),
@@ -660,7 +695,8 @@ class _AuthScreenState extends State<AuthScreen> {
                         ? const SizedBox(
                             height: 22,
                             width: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2.5, color: Colors.white),
                           )
                         : Text(isSignUp ? 'Complete Sign Up' : 'Log In',
                             style: const TextStyle(fontSize: 16)),
@@ -694,10 +730,20 @@ class _Panel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor =
+        dark ? Theme.of(context).colorScheme.onSurface : Elysium.navy;
+    final subtitleColor =
+        dark ? Theme.of(context).colorScheme.onSurfaceVariant : Elysium.muted;
+    final panelSurface =
+        dark ? Theme.of(context).colorScheme.surface : Elysium.surface;
+    final accent =
+        dark && color == Elysium.navy ? const Color(0xFF8DBEFF) : color;
     final iconBubble = Container(
       padding: EdgeInsets.all(compact ? 12 : 18),
-      decoration: BoxDecoration(color: color.fade(0.16), shape: BoxShape.circle),
-      child: Icon(icon, size: compact ? 28 : 42, color: color),
+      decoration:
+          BoxDecoration(color: accent.fade(0.16), shape: BoxShape.circle),
+      child: Icon(icon, size: compact ? 28 : 42, color: accent),
     );
     final titleText = FittedBox(
       fit: BoxFit.scaleDown,
@@ -706,11 +752,11 @@ class _Panel extends StatelessWidget {
               fontSize: compact ? 22 : 28,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.2,
-              color: Elysium.navy)),
+              color: titleColor)),
     );
     final sub = Text(subtitle,
         textAlign: compact ? TextAlign.start : TextAlign.center,
-        style: const TextStyle(fontSize: 13, color: Elysium.muted));
+        style: TextStyle(fontSize: 13, color: subtitleColor));
 
     return Material(
       color: Colors.transparent,
@@ -723,9 +769,15 @@ class _Panel extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [color.fade(0.16), Elysium.surface],
+              colors: [
+                accent.fade(dark ? 0.28 : 0.16),
+                panelSurface,
+              ],
             ),
-            border: Border.all(color: color.fade(0.55), width: 1.6),
+            border: Border.all(
+              color: accent.fade(dark ? 0.7 : 0.55),
+              width: 1.6,
+            ),
           ),
           child: Padding(
             padding: const EdgeInsets.all(18),
@@ -738,7 +790,9 @@ class _Panel extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Align(alignment: Alignment.centerLeft, child: titleText),
+                          Align(
+                              alignment: Alignment.centerLeft,
+                              child: titleText),
                           const SizedBox(height: 4),
                           sub,
                         ],

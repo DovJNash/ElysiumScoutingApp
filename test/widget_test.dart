@@ -7,6 +7,7 @@ import 'package:frc_scouting_app/models/scouting_entry.dart';
 import 'package:frc_scouting_app/models/team_model.dart';
 import 'package:frc_scouting_app/models/user_model.dart';
 import 'package:frc_scouting_app/screens/auth_screen.dart';
+import 'package:frc_scouting_app/services/app_settings_service.dart';
 import 'package:frc_scouting_app/services/locale_service.dart';
 import 'package:frc_scouting_app/services/pit_scouting_service.dart';
 import 'package:frc_scouting_app/services/tba_service.dart';
@@ -15,6 +16,22 @@ import 'package:frc_scouting_app/theme/elysium_theme.dart';
 import 'package:frc_scouting_app/widgets/pit_data_view.dart';
 
 void main() {
+  test('dark mode changes in memory before saving the preference', () async {
+    SharedPreferences.setMockInitialValues({});
+    final settings = AppSettingsService.instance;
+    await settings.initialize();
+
+    final save = settings.setDarkMode(true);
+    expect(settings.isDarkMode, isTrue);
+    await save;
+
+    expect(
+      (await SharedPreferences.getInstance()).getBool('elysium_dark_mode'),
+      isTrue,
+    );
+    await settings.setDarkMode(false);
+  });
+
   test('user model preserves team identity', () {
     const user = UserModel(
       id: 'user-1',

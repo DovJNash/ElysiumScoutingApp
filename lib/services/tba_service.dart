@@ -183,15 +183,25 @@ class TbaService {
   static final instance = TbaService._();
 
   Future<List<TbaTeam>> teamsAtEvent(String eventKey) async {
-    final result = await _get('/event/$eventKey/teams/simple');
-    final year = int.tryParse(eventKey.substring(0, 4)) ?? 2027;
-    final teams = (result as List).map(
-      (e) => TbaTeam.fromJson(e as Map<String, dynamic>, year: year),
-    );
-    final list = teams.where((team) => team.number > 0).toList()
-      ..sort((a, b) => a.number.compareTo(b.number));
-    await _cache('teams_$eventKey', list.map((team) => team.toJson()).toList());
-    return list;
+    final cached = await cachedTeams(eventKey);
+    try {
+      final result = await _get('/event/$eventKey/teams/simple');
+      final year = int.tryParse(eventKey.substring(0, 4)) ?? 2027;
+      final teams = (result as List).map(
+        (e) => TbaTeam.fromJson(e as Map<String, dynamic>, year: year),
+      );
+      final list = teams.where((team) => team.number > 0).toList()
+        ..sort((a, b) => a.number.compareTo(b.number));
+      if (list.isEmpty && cached.isNotEmpty) return cached;
+      await _cache(
+        'teams_$eventKey',
+        list.map((team) => team.toJson()).toList(),
+      );
+      return list;
+    } catch (_) {
+      if (cached.isNotEmpty) return cached;
+      rethrow;
+    }
   }
 
   /// Israeli district teams = the teams of EVERY Israeli district event of the
@@ -254,42 +264,63 @@ class TbaService {
 
   Future<TbaTeam> teamByNumber(int teamNumber) async {
     if (teamNumber <= 0) throw ArgumentError.value(teamNumber, 'teamNumber');
-    final result = await _get('/team/frc$teamNumber/simple');
-    return TbaTeam.fromJson(result as Map<String, dynamic>);
+    try {
+      final result = await _get('/team/frc$teamNumber/simple');
+      return TbaTeam.fromJson(result as Map<String, dynamic>);
+    } catch (_) {
+      for (final year in [2027, 2026]) {
+        for (final team in await cachedIsraeliTeams(year: year)) {
+          if (team.number == teamNumber) return team;
+        }
+      }
+      rethrow;
+    }
   }
 
   Future<List<TbaEvent>> israeliDistrictEvents({int year = 2027}) async {
     final cached = await cachedIsraeliDistrictEvents(year: year);
-    final result = await _get('/district/${year}isr/events/simple');
-    final events = (result as List)
-        .map((row) => TbaEvent.fromJson(row as Map<String, dynamic>))
-        .where((event) => event.key.isNotEmpty)
-        .toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-    if (events.isEmpty && cached.isNotEmpty) return cached;
-    await _cache(
-      'israeli_district_events_$year',
-      events.map((event) => event.toJson()).toList(),
-    );
-    return events;
+    try {
+      final result = await _get('/district/${year}isr/events/simple');
+      final events = (result as List)
+          .map((row) => TbaEvent.fromJson(row as Map<String, dynamic>))
+          .where((event) => event.key.isNotEmpty)
+          .toList()
+        ..sort((a, b) => a.key.compareTo(b.key));
+      if (events.isEmpty && cached.isNotEmpty) return cached;
+      await _cache(
+        'israeli_district_events_$year',
+        events.map((event) => event.toJson()).toList(),
+      );
+      return events;
+    } catch (_) {
+      if (cached.isNotEmpty) return cached;
+      rethrow;
+    }
   }
 
   Future<List<TbaEvent>> israeliEvents({int year = 2027}) async {
-    final result = await _get('/events/$year/simple');
-    final events = (result as List)
-        .map((row) => TbaEvent.fromJson(row as Map<String, dynamic>))
-        .where(
-          (event) =>
-              event.key.startsWith('$year') &&
-              event.country.trim().toLowerCase() == 'israel',
-        )
-        .toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-    await _cache(
-      'israeli_events_$year',
-      events.map((event) => event.toJson()).toList(),
-    );
-    return events;
+    final cached = await cachedIsraeliEvents(year: year);
+    try {
+      final result = await _get('/events/$year/simple');
+      final events = (result as List)
+          .map((row) => TbaEvent.fromJson(row as Map<String, dynamic>))
+          .where(
+            (event) =>
+                event.key.startsWith('$year') &&
+                event.country.trim().toLowerCase() == 'israel',
+          )
+          .toList()
+        ..sort((a, b) => a.key.compareTo(b.key));
+      if (events.isEmpty && cached.isNotEmpty) return cached;
+      await _cache(
+        'israeli_events_$year',
+        events.map((event) => event.toJson()).toList(),
+      );
+      return events;
+    } catch (_) {
+      if (cached.isNotEmpty) return cached;
+      rethrow;
+    }
   }
 
   Future<List<TbaEvent>> cachedIsraeliEvents({int year = 2027}) async =>
@@ -306,16 +337,23 @@ class TbaService {
       (await _readCache('israeli_teams_$year')).map(TbaTeam.fromJson).toList();
 
   Future<List<TbaMatch>> matchesAtEvent(String eventKey) async {
-    final result = await _get('/event/$eventKey/matches/simple');
-    final matches = (result as List)
-        .map((e) => TbaMatch.fromJson(e as Map<String, dynamic>))
-        .toList();
-    matches.sort(TbaMatch.compareSchedule);
-    await _cache(
-      'matches_$eventKey',
-      matches.map((match) => match.toJson()).toList(),
-    );
-    return matches;
+    final cached = await cachedMatches(eventKey);
+    try {
+      final result = await _get('/event/$eventKey/matches/simple');
+      final matches = (result as List)
+          .map((e) => TbaMatch.fromJson(e as Map<String, dynamic>))
+          .toList();
+      if (matches.isEmpty && cached.isNotEmpty) return cached;
+      matches.sort(TbaMatch.compareSchedule);
+      await _cache(
+        'matches_$eventKey',
+        matches.map((match) => match.toJson()).toList(),
+      );
+      return matches;
+    } catch (_) {
+      if (cached.isNotEmpty) return cached;
+      rethrow;
+    }
   }
 
   Future<List<TbaTeam>> cachedTeams(String eventKey) async =>
@@ -336,6 +374,14 @@ class TbaService {
           TbaConfig.functionName,
           body: {'path': path}).timeout(const Duration(seconds: 25));
     } on Exception catch (error) {
+      final message = error.toString();
+      if (message.contains('Requested function was not found')) {
+        throw StateError(
+          "Supabase Edge Function '${TbaConfig.functionName}' is not "
+          "deployed for this project. From the repository root, run "
+          '`supabase functions deploy ${TbaConfig.functionName}`.',
+        );
+      }
       throw Exception('Could not reach The Blue Alliance proxy: $error');
     }
     if (response.status < 200 || response.status >= 300) {

@@ -17,7 +17,6 @@ import '../services/locale_service.dart';
 import '../widgets/match_schedule_page.dart';
 import '../models/pit_scouting_entry.dart';
 import '../services/pit_scouting_service.dart';
-import 'scouter_home_screen.dart';
 import '../widgets/localized_text.dart';
 import '../widgets/profile_page.dart';
 
@@ -232,30 +231,31 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
         appBar: AppBar(
           title: ElysiumAppBarTitle('Strategy • ${user.name}'),
           actions: [
-            const LocaleSwitchButton(),
-            IconButton(
-              tooltip: 'Match Scouting',
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ScouterHomeScreen()),
-              ),
-              icon: const Icon(Icons.assignment_rounded),
-            ),
             const SyncStatusBadge(),
             IconButton(
-              tooltip: 'Profile',
+              tooltip: 'Submitted forms',
+              onPressed: () => showMySubmissionsSheet(context, superMode: true),
+              icon: const Icon(Icons.history_rounded),
+            ),
+            IconButton(
+              tooltip: 'Account',
               onPressed: () => Navigator.of(context)
                   .push(MaterialPageRoute(builder: (_) => const ProfilePage())),
               icon: const Icon(Icons.account_circle_rounded),
             ),
             IconButton(
-              tooltip: 'My Reports',
-              onPressed: () => showMySubmissionsSheet(context, superMode: true),
-              icon: const Icon(Icons.history_rounded),
-            ),
-            IconButton(
-              tooltip: 'Log Out',
-              onPressed: () => AuthService.instance.logout(),
-              icon: const Icon(Icons.logout_rounded),
+              tooltip: 'Match schedule',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => Scaffold(
+                    appBar: AppBar(title: const Text('Match Schedule')),
+                    body: const MatchSchedulePage(
+                      filterToMyAssignments: true,
+                    ),
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.calendar_month_rounded),
             ),
           ],
           bottom: TabBar(

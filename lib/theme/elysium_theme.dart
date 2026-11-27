@@ -87,7 +87,14 @@ class Elysium {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: bg,
+          systemNavigationBarDividerColor: border,
+          systemNavigationBarIconBrightness: Brightness.dark,
+          systemNavigationBarContrastEnforced: false,
+        ),
         iconTheme: IconThemeData(color: Colors.white),
         actionsIconTheme: IconThemeData(color: Colors.white),
         titleTextStyle: TextStyle(
@@ -149,6 +156,10 @@ class Elysium {
         overlayColor: primary.fade(0.15),
         valueIndicatorColor: primaryDark,
       ),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStatePropertyAll(muted.fade(0.55)),
+        trackColor: WidgetStatePropertyAll(surface2.fade(0.6)),
+      ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: primary,
         linearTrackColor: border,
@@ -182,6 +193,14 @@ class Elysium {
         centerTitle: false,
         iconTheme: IconThemeData(color: Colors.white),
         actionsIconTheme: IconThemeData(color: Colors.white),
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: Color(0xFF0A1526),
+          systemNavigationBarDividerColor: Color(0xFF354B68),
+          systemNavigationBarIconBrightness: Brightness.light,
+          systemNavigationBarContrastEnforced: false,
+        ),
       ),
       cardTheme: const CardThemeData(
         color: Color(0xFF14243B),
@@ -217,6 +236,10 @@ class Elysium {
         activeTrackColor: Color(0xFF66A9FF),
         inactiveTrackColor: Color(0xFF354B68),
         thumbColor: Color(0xFF66A9FF),
+      ),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStatePropertyAll(Color(0xFF526783)),
+        trackColor: WidgetStatePropertyAll(Color(0xFF14243B)),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: Color(0xFF66A9FF),
