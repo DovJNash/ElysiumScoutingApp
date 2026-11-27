@@ -274,7 +274,7 @@ begin
   if v_role in ('Strategy', 'Leader') then
     select * into v_team_role_codes
     from public.team_role_codes
-    where team_number = p_team_number;
+    where team_role_codes.team_number = p_team_number;
     if not found then
       raise exception 'This team has not configured Strategy/Leader registration codes';
     end if;
