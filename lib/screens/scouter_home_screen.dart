@@ -958,9 +958,9 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
     int value,
     int max,
     List<String> descriptions,
-    ValueChanged<int> onChanged,
-    {int min = 1},
-  ) {
+    ValueChanged<int> onChanged, {
+    int min = 1,
+  }) {
     assert(descriptions.length == max - min + 1);
     final index = (value.clamp(min, max) - min).toInt();
     final description = descriptions[index];
