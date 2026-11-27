@@ -1,14 +1,14 @@
 # Elysium 1937 Scouting App  (Flutter + Supabase)
 
 FRC Elysium 1937 (Team 1937) scouting app, built with Flutter and Supabase for Android, iOS, web and desktop.
-The app is **offline-first**: it works without an internet connection, and syncs data when a connection is available. It has three roles: Scouter, Strategy (super scouting + live data) and Leader (scout rankings + moderation).
+The app is **offline-first**: it works without an internet connection, and syncs data when a connection is available. It has three roles: Scouter, Strategy (super scouting + live data) and Leader (everything: scout rankings, moderation, match / super / pit scouting, data and creating competitions).
 
 ## Setup
 
 ### 1. Supabase (once per Supabase project)
 1. Dashboard -> *SQL Editor* -> *New query* -> paste ALL of `supabase_setup.sql` -> *Run*.
-   The last result must list **4 functions** (`app_login`, `app_signup`,
-   `delete_scouting_record`, `delete_super_scouting_record`). If you get an error,
+   The last result must list **5 functions** (`app_login`, `app_signup`,
+   `delete_scouting_record`, `delete_super_scouting_record`, `create_competition`). If you get an error,
    or the list is shorter, the setup did not finish.
 2. Left-over tables from older versions? Run `supabase_reset.sql` first
    (it deletes all data/accounts), then run `supabase_setup.sql` again.
@@ -120,7 +120,7 @@ flutter build ipa               # or press Run in Xcode to install on your devic
 
 ## Roles (identical text in the app and in the database)
 `Scouter`, `Strategy`, `Leader`.
-Scouter deletes only his own forms, Strategy only his own reports, Leader any form
+Every account deletes only the forms it submitted itself; a Leader can also delete forms of accounts of the Leader's own team
 (enforced in the database by the `delete_*_record` functions).
 
 
@@ -139,6 +139,32 @@ Scouter deletes only his own forms, Strategy only his own reports, Leader any fo
 - [x] Add a language swith (english and hebrew, and make the font in hebrew looks good, the font in hebrew will be assistant)
 
 # Future features V2
-- [ ] the leader has access to: Ranking, Overall, Form, Data, schedule, scouting, super scouting, pit scouting, add competition
-- [ ] in the add competition when choosing the teams to be in the competition, instead of writing the teams numbers just make it a checklist with all the team in ISR 2027 
-- [ ] in the data, i want to see a list of every team and all of their pit scouting forms data (the team name logo and number, how many forms have been submitted for these teams, and all the forms data organized)
+- [x] the leader has access to: Ranking, Overall, Form, Data, schedule, scouting, super scouting, pit scouting, add competition
+- [x] in the add competition when choosing the teams to be in the competition, instead of writing the teams numbers just make it a checklist with all the team in ISR 2027
+- [x] in the data, i want to see a list of every team and all of their pit scouting forms data (the team name logo and number, how many forms have been submitted for these teams, and all the forms data organized)
+
+## Leader / V2 notes
+- **Leader tabs:** Rankings, Forms, Data, Overall, Schedule, Super Scouting, Pit. The
+  *Match Scouting* button in the top bar opens the normal match-scouting flow, and the
+  *Create competition* button creates a competition.
+- **Create competition:** the Leader enters an ID and a name and ticks the teams from the
+  checklist of all Israeli district teams (searchable, with *Select all* / *Clear*).
+  The competition is saved in Supabase through the `create_competition` function (only a
+  Leader may call it), so every device sees it, and it is cached for offline use. Re-run
+  `supabase_setup.sql` once to install that function. If the Leader is offline the
+  competition is kept on that device only.
+- **Pit data:** in the *Data* tab (Strategy and Leader) switch to *Pit data* to see every team
+  of the selected competition with its logo, number, name and how many pit forms were
+  submitted for it. Open a team to read the data of all of its forms.
+
+## Future features V3
+- [ ] the leader can change his team's access codes (strategy and leader) and the new codes will be updated in the database and in the app
+- [ ] changes in the normal scouting form: the first screen after choosing the team & match, there will be a screen asking "Did the robot show up to the match?" if the answer is no, the form will be submitted with all the fields empty and a note that the robot didn't show up, if the answer is yes, the form will continue as normal.
+- [ ] instead of the current starting position choosing I want to make a photo of the 2026 REBUILT blue alliance zone from the top view (a photo from the internet!), and the user can choose on the photo the starting position of the robot (left trench, left bumper, right bumper, right trench, hub) and the starting position will be saved in the form.
+- [ ] the autonomous part in the normal scouting form -  a screen with a slider 1-10 asking "How many fuels did the robot shoot?" and every number will have a description of how many fuels it means, a counter "How many cycles did the robot do?" and every number will have a description of how many cycles it means, and another slider "How many fules did the robot deliver?" and every number will have a description of how many fules it means, and another slider "How fast was the robot intake" and every number will have a description of intake speed it means. + an option to choose the robot exit path (a photo of the 2026 REBUILT blue alliance zone from the top view, and the user can choose on the photo the path the robot took to exit the alliance zone (left trench, left bumper, right bumper, right trench, none) and the path will be saved in the form.) + a slider 1-5 of "Overall autonomous performance" and every number will have a description of how good the robot did in the autonomous.
+- [ ] the teleop part in the normal scouting form - a question "Can the robot shoot while moving?" and a yes/no buttons ,a slider 1-10 asking "How many fuels did the robot shoot?" and every number will have a description of how many fuels it means, a counter "How many cycles did the robot do?", another slider "How many fules did the robot deliver?" and every number will have a description of how many fules it means, and another slider "How fast was the robot intake?" and every number will have a description of intake speed it means, a slider "How accurate is the robot shooting?" 1-5 and every number will have a description of how accurate it means, and a slider "Overall teleop performance" 1-10 and every number will have a description of how good the robot did in the teleop.
+- [ ] the defence & climb part in the normal scouting form (after the teleop part) - a yes/no question "Did the robot played defence?" if yes, a slider 1-5 asking "How good was the robot in defence?" and every number will have a description of how good it means, another yes/no question "Did the robot was dealing with defence?" if yes, a slider 1-5 asking "How good was the robot in dealing with defence?" and every number will have a description of how good it means, a slider 1-10 of "How good was the driver" and every number will have a description of how good it means, another yes/no question "Did the robot climb?" if yes, a slider (L1, L2, L3) and a counter "How much time did the robot took to climb?" + an option to write notes about the game.
+- [ ] the leader can assign to his scouters/strategies a specific match to scout, and the scouter/strategy will see only the match that was assigned to him/her in the app.
+- [ ] a profile page for every user, with the user's name, role, team, and a list of all the forms submitted by the user, an option to change their password/name, an option to delete their account, and an option to log out, an option to switch to dark mode, and an option to switch the app language (english/hebrew).
+- [ ] find a way to load the team's logo faster, maybe by using a different image format or by caching the images in the app.
+- [ ] note that some of the normal scouting changes can be applied to the super scouting form as well, but not all of them, and some of them will be different in the super scouting form.
