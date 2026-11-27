@@ -15,6 +15,8 @@ class SyncStatusBadge extends StatelessWidget {
       listenable: SyncService.instance,
       builder: (context, _) {
         final sync = SyncService.instance;
+        final theme = Theme.of(context);
+        final dark = theme.brightness == Brightness.dark;
         final pending = sync.pendingCount;
         final problem = sync.isOnline && !sync.isSyncing && sync.lastError != null;
 
@@ -54,7 +56,7 @@ class SyncStatusBadge extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: dark ? const Color(0xFF243A56) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: color.fade(0.5)),
               ),
@@ -81,11 +83,11 @@ class SyncStatusBadge extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Elysium.surface,
+        backgroundColor: Theme.of(ctx).colorScheme.surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Elysium.border),
+          side: BorderSide(color: Theme.of(ctx).dividerColor),
         ),
         title: const Text('Sync problem',
             style: TextStyle(fontWeight: FontWeight.w900)),

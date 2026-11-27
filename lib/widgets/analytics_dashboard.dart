@@ -45,14 +45,15 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   Widget build(BuildContext context) {
     final comp = widget.fixedCompetition ?? _selected;
     if (comp == null) return const Center(child: CircularProgressIndicator());
+    final theme = Theme.of(context);
 
     return Column(
       children: [
         if (widget.fixedCompetition == null)
           Container(
-            decoration: const BoxDecoration(
-              color: Elysium.surface,
-              border: Border(bottom: BorderSide(color: Elysium.border)),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              border: Border(bottom: BorderSide(color: theme.dividerColor)),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
@@ -65,7 +66,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                   child: DropdownButton<CompetitionInfo>(
                     value: _selected,
                     isExpanded: true,
-                    dropdownColor: Elysium.surface2,
+                    dropdownColor: theme.colorScheme.surface,
                     underline: const SizedBox.shrink(),
                     items: _competitions
                         .map((c) => DropdownMenuItem(value: c, child: Text(c.name)))
@@ -80,9 +81,9 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
           ),
         Container(
           width: double.infinity,
-          decoration: const BoxDecoration(
-            color: Elysium.surface,
-            border: Border(bottom: BorderSide(color: Elysium.border)),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(bottom: BorderSide(color: theme.dividerColor)),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           child: Wrap(
@@ -302,11 +303,17 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
             return ListTile(
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
-                backgroundColor: first ? Elysium.primary : Elysium.surface2,
+                backgroundColor: first
+                    ? Elysium.primary
+                    : Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF243A56)
+                        : Elysium.surface2,
                 child: Text('${i + 1}',
                     style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: first ? Colors.white : Elysium.navy)),
+                        color: first
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.onSurface)),
               ),
               title: Row(children: [
                 TeamLogo(
@@ -345,18 +352,24 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
 
   Text _b(String s) => Text(s, style: const TextStyle(fontWeight: FontWeight.w900));
 
+  Color _tableHeaderColor(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF243A56)
+          : Elysium.surface2;
+
   Widget _telemetryTable(List<TeamStandingSummary> s) => _tableCard(
         'Scoring & Alliance-Zone Fuel Telemetry (averages)',
         DataTable(
-          headingRowColor: const WidgetStatePropertyAll(Elysium.surface2),
+          headingRowColor:
+              WidgetStatePropertyAll(_tableHeaderColor(context)),
           columnSpacing: 18,
           columns: const [
             DataColumn(label: Text('Team')),
             DataColumn(label: Text('Matches')),
-            DataColumn(label: Text('Auto Shot')),
-            DataColumn(label: Text('Auto Fuel')),
-            DataColumn(label: Text('Tele Shot')),
-            DataColumn(label: Text('Tele Fuel')),
+            DataColumn(label: Text('Auto Shot Est.')),
+            DataColumn(label: Text('Auto Fuel Est.')),
+            DataColumn(label: Text('Tele Shot Est.')),
+            DataColumn(label: Text('Tele Fuel Est.')),
             DataColumn(label: Text('Est BPS')),
             DataColumn(label: Text('Miss %')),
           ],
@@ -378,7 +391,8 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   Widget _zoneTable(List<TeamStandingSummary> s) => _tableCard(
         'Zone Control (seconds) & Defense / Driver Ratings',
         DataTable(
-          headingRowColor: const WidgetStatePropertyAll(Elysium.surface2),
+          headingRowColor:
+              WidgetStatePropertyAll(_tableHeaderColor(context)),
           columnSpacing: 18,
           columns: const [
             DataColumn(label: Text('Team')),
@@ -420,7 +434,8 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                   style: TextStyle(color: Elysium.muted)),
             )
           : DataTable(
-              headingRowColor: const WidgetStatePropertyAll(Elysium.surface2),
+              headingRowColor:
+                  WidgetStatePropertyAll(_tableHeaderColor(context)),
               columnSpacing: 18,
               dataRowMinHeight: 48,
               dataRowMaxHeight: 64,

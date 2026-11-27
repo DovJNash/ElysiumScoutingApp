@@ -15,7 +15,7 @@ void showMySubmissionsSheet(BuildContext context, {required bool superMode}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Elysium.surface,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -45,7 +45,7 @@ void showMySubmissionsSheet(BuildContext context, {required bool superMode}) {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Elysium.border,
+                      color: Theme.of(context).dividerColor,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -55,7 +55,7 @@ void showMySubmissionsSheet(BuildContext context, {required bool superMode}) {
                   superMode ? 'My Super Scouting Reports' : 'My Submitted Forms',
                   subtitle: 'You can only delete forms submitted by your own account.',
                 ),
-                const Divider(height: 24),
+                Divider(height: 24, color: Theme.of(context).dividerColor),
                 Expanded(
                   child: count == 0
                       ? const Center(
@@ -69,7 +69,9 @@ void showMySubmissionsSheet(BuildContext context, {required bool superMode}) {
                                   title:
                                       '${e.competition} • Match ${e.matchNum} • Team ${e.teamNum}',
                                   subtitle:
-                                      'Auto ${e.autoShoot} | Teleop ${e.teleopShoot} | Driver ${e.driverSkill}/10',
+                                      'Auto ${e.fuelValue(e.autoShoot)} | '
+                                          'Teleop ${e.fuelValue(e.teleopShoot)} | '
+                                          'Driver ${e.driverSkill}/10',
                                   synced: e.isSynced,
                                   onOpen: () => showEntryDetails(context,
                                       title: 'Match ${e.matchNum} • Team ${e.teamNum}',

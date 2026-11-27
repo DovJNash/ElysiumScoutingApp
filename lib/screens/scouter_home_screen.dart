@@ -47,14 +47,14 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
   String _startPos = ScoutingFormConfig.startPositions.first;
   String _exitPos = ScoutingFormConfig.exitPaths.first;
 
-  int _autoShoot = 1;
+  int _autoShoot = 0;
   int _autoCycles = 0;
-  int _autoFuelsDelivered = 1;
+  int _autoFuelsDelivered = 0;
   int _autoIntakeSpeed = 5;
   int _autoPerformance = 3;
-  int _teleopShoot = 1;
+  int _teleopShoot = 0;
   int _teleopCycles = 0;
-  int _teleopFuelsDelivered = 1;
+  int _teleopFuelsDelivered = 0;
   int _teleopIntakeSpeed = 5;
   int _teleopAccuracy = 3;
   int _teleopPerformance = 5;
@@ -141,14 +141,14 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
     _notesController.clear();
     _startPos = ScoutingFormConfig.startPositions.first;
     _exitPos = ScoutingFormConfig.exitPaths.first;
-    _autoShoot = 1;
+    _autoShoot = 0;
     _autoCycles = 0;
-    _autoFuelsDelivered = 1;
+    _autoFuelsDelivered = 0;
     _autoIntakeSpeed = 5;
     _autoPerformance = 3;
-    _teleopShoot = 1;
+    _teleopShoot = 0;
     _teleopCycles = 0;
-    _teleopFuelsDelivered = 1;
+    _teleopFuelsDelivered = 0;
     _teleopIntakeSpeed = 5;
     _teleopAccuracy = 3;
     _teleopPerformance = 5;
@@ -281,6 +281,7 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
       teleopShoot: _robotShowed ? _teleopShoot : 0,
       teleopIntake: _robotShowed ? _teleopFuelsDelivered : 0,
       robotShowed: _robotShowed,
+      fuelCountsAreRanges: _robotShowed,
       autoCycles: _robotShowed ? _autoCycles : 0,
       autoFuelsDelivered: _robotShowed ? _autoFuelsDelivered : 0,
       autoIntakeSpeed: _robotShowed ? _autoIntakeSpeed : 0,
@@ -484,13 +485,14 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
   Widget _wizard() {
     final team = _team!;
     final last = _step == ScoutingFormConfig.stepTitles.length - 1;
+    final theme = Theme.of(context);
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: const BoxDecoration(
-            color: Elysium.surface,
-            border: Border(bottom: BorderSide(color: Elysium.border)),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(bottom: BorderSide(color: theme.dividerColor)),
           ),
           child: Column(
             children: [
@@ -534,9 +536,9 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
         ),
         Container(
           padding: const EdgeInsets.all(14),
-          decoration: const BoxDecoration(
-            color: Elysium.surface,
-            border: Border(top: BorderSide(color: Elysium.border)),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(top: BorderSide(color: theme.dividerColor)),
           ),
           child: SafeArea(
             top: false,
@@ -586,6 +588,8 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
     String selected,
     ValueChanged<String> onPick,
   ) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -594,15 +598,23 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
             (o) => ChoiceChip(
               label: Text(o),
               selected: selected == o,
-              selectedColor: Elysium.primary,
-              backgroundColor: Elysium.surface,
+              selectedColor: theme.colorScheme.primary,
+              backgroundColor: dark
+                  ? const Color(0xFF243A56)
+                  : Elysium.surface2,
               showCheckmark: false,
               side: BorderSide(
-                color: selected == o ? Elysium.primary : Elysium.border,
+                color: selected == o
+                    ? theme.colorScheme.primary
+                    : dark
+                        ? const Color(0xFF526783)
+                        : Elysium.border,
               ),
               labelStyle: TextStyle(
                 fontWeight: FontWeight.w700,
-                color: selected == o ? Colors.white : Elysium.navy,
+                color: selected == o
+                    ? theme.colorScheme.onPrimary
+                    : theme.colorScheme.onSurface,
               ),
               onSelected: (_) => onPick(o),
             ),
@@ -698,14 +710,12 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
             ),
             const SizedBox(height: 14),
             _scaleSlider(
-              'How many fuels did the robot shoot?',
+              'How many fuels did the robot shoot? (range)',
               _autoShoot,
               10,
-              List.generate(
-                10,
-                (index) => ScoutingFormConfig.fuelDescription(index + 1),
-              ),
+              ScoutingFormConfig.fuelRangeDescriptions,
               (v) => setState(() => _autoShoot = v),
+              min: 0,
             ),
             const SizedBox(height: 14),
             ResponsiveCounterPad(
@@ -716,14 +726,12 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
             ),
             const SizedBox(height: 14),
             _scaleSlider(
-              'How many fuels did the robot deliver?',
+              'How many fuels did the robot deliver? (range)',
               _autoFuelsDelivered,
               10,
-              List.generate(
-                10,
-                (index) => ScoutingFormConfig.fuelDescription(index + 1),
-              ),
+              ScoutingFormConfig.fuelRangeDescriptions,
               (v) => setState(() => _autoFuelsDelivered = v),
+              min: 0,
             ),
             const SizedBox(height: 14),
             _scaleSlider(
@@ -762,14 +770,12 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
             ),
             const SizedBox(height: 14),
             _scaleSlider(
-              'How many fuels did the robot shoot?',
+              'How many fuels did the robot shoot? (range)',
               _teleopShoot,
               10,
-              List.generate(
-                10,
-                (index) => ScoutingFormConfig.fuelDescription(index + 1),
-              ),
+              ScoutingFormConfig.fuelRangeDescriptions,
               (v) => setState(() => _teleopShoot = v),
+              min: 0,
             ),
             const SizedBox(height: 14),
             ResponsiveCounterPad(
@@ -780,14 +786,12 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
             ),
             const SizedBox(height: 14),
             _scaleSlider(
-              'How many fuels did the robot deliver?',
+              'How many fuels did the robot deliver? (range)',
               _teleopFuelsDelivered,
               10,
-              List.generate(
-                10,
-                (index) => ScoutingFormConfig.fuelDescription(index + 1),
-              ),
+              ScoutingFormConfig.fuelRangeDescriptions,
               (v) => setState(() => _teleopFuelsDelivered = v),
+              min: 0,
             ),
             const SizedBox(height: 14),
             _scaleSlider(
@@ -802,7 +806,7 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
               'How accurate is the robot shooting?',
               _teleopAccuracy,
               5,
-              ScoutingFormConfig.fivePointDescriptions,
+              ScoutingFormConfig.accuracyDescriptions,
               (v) => setState(() => _teleopAccuracy = v),
             ),
             const SizedBox(height: 14),
@@ -830,7 +834,7 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
                 'How good was the robot in defense?',
                 _defenseRating,
                 5,
-                ScoutingFormConfig.fivePointDescriptions,
+                ScoutingFormConfig.defenseDescriptions,
                 (v) => setState(() => _defenseRating = v),
               ),
             ],
@@ -846,7 +850,7 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
                 'How good was the robot at dealing with defense?',
                 _defenseResilience,
                 5,
-                ScoutingFormConfig.fivePointDescriptions,
+                ScoutingFormConfig.defenseResilienceDescriptions,
                 (v) => setState(() => _defenseResilience = v),
               ),
             ],
@@ -881,6 +885,7 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
                 label: 'How many seconds did the robot take to climb?',
                 value: _climbTimeSeconds,
                 accentColor: Elysium.accent,
+                extraDeltas: const [-5, 5],
                 onChanged: (v) => setState(() => _climbTimeSeconds = v),
               ),
             ],
@@ -902,6 +907,8 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
   }
 
   Widget _yesNo(String title, bool value, ValueChanged<bool> onChanged) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
     return ElysiumCard(
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -918,9 +925,21 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
                     selected: value == option,
                     onSelected: (_) => onChanged(option),
                     showCheckmark: false,
-                    selectedColor: Elysium.primary,
+                    selectedColor: theme.colorScheme.primary,
+                    backgroundColor: dark
+                        ? const Color(0xFF243A56)
+                        : Elysium.surface2,
+                    side: BorderSide(
+                      color: value == option
+                          ? theme.colorScheme.primary
+                          : dark
+                              ? const Color(0xFF526783)
+                              : Elysium.border,
+                    ),
                     labelStyle: TextStyle(
-                      color: value == option ? Colors.white : Elysium.navy,
+                      color: value == option
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.onSurface,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -940,9 +959,11 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
     int max,
     List<String> descriptions,
     ValueChanged<int> onChanged,
+    {int min = 1},
   ) {
-    assert(descriptions.length == max);
-    final description = descriptions[value.clamp(1, max) - 1];
+    assert(descriptions.length == max - min + 1);
+    final index = (value.clamp(min, max) - min).toInt();
+    final description = descriptions[index];
     return ElysiumCard(
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -976,15 +997,15 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
             ],
           ),
           Slider(
-            value: value.toDouble().clamp(1, max).toDouble(),
-            min: 1,
+            value: value.toDouble().clamp(min, max).toDouble(),
+            min: min.toDouble(),
             max: max.toDouble(),
-            divisions: max - 1,
-            label: descriptions[value.clamp(1, max) - 1],
+            divisions: max - min,
+            label: descriptions[index],
             onChanged: (v) => onChanged(v.round()),
           ),
           Text(
-            description,
+            LocaleService.instance.text(description),
             style: const TextStyle(
               color: Elysium.primary,
               fontWeight: FontWeight.w700,

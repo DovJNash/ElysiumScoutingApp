@@ -18,7 +18,7 @@ class SqliteLocalDb extends LocalDbService {
     final path = p.join(dir, 'frc_scouting_${SupabaseConfig.projectRef}.db');
     _db = await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE scouting_local (
@@ -41,6 +41,7 @@ class SqliteLocalDb extends LocalDbService {
             teleopShoot INTEGER NOT NULL,
             teleopIntake INTEGER NOT NULL,
             robotShowed INTEGER NOT NULL DEFAULT 1,
+            fuelCountsAreRanges INTEGER NOT NULL DEFAULT 0,
             autoCycles INTEGER NOT NULL DEFAULT 0,
             autoFuelsDelivered INTEGER NOT NULL DEFAULT 0,
             autoIntakeSpeed INTEGER NOT NULL DEFAULT 0,
@@ -142,6 +143,12 @@ class SqliteLocalDb extends LocalDbService {
               'ALTER TABLE super_scouting_local ADD COLUMN ${entry.key} ${entry.value}',
             );
           }
+        }
+        if (oldVersion < 3) {
+          await db.execute(
+            'ALTER TABLE scouting_local ADD COLUMN '
+            'fuelCountsAreRanges INTEGER NOT NULL DEFAULT 0',
+          );
         }
       },
     );

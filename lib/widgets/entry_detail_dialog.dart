@@ -10,11 +10,11 @@ Future<void> showEntryDetails(
   return showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      backgroundColor: Elysium.surface,
+      backgroundColor: Theme.of(ctx).colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Elysium.border),
+        side: BorderSide(color: Theme.of(ctx).dividerColor),
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
       content: SizedBox(
@@ -59,11 +59,11 @@ Future<bool> confirmDialog(
   final res = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      backgroundColor: Elysium.surface,
+      backgroundColor: Theme.of(ctx).colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Elysium.border),
+        side: BorderSide(color: Theme.of(ctx).dividerColor),
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
       content: Text(message),
