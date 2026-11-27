@@ -168,3 +168,4 @@ Every account deletes only the forms it submitted itself; a Leader can also dele
 - [ ] a profile page for every user, with the user's name, role, team, and a list of all the forms submitted by the user, an option to change their password/name, an option to delete their account, and an option to log out, an option to switch to dark mode, and an option to switch the app language (english/hebrew).
 - [ ] find a way to load the team's logo faster, maybe by using a different image format or by caching the images in the app.
 - [ ] note that some of the normal scouting changes can be applied to the super scouting form as well, but not all of them, and some of them will be different in the super scouting form.
+- [ ] another competition: ISR 2026 IOS (Israel Off Season) (get the teams list from TBA), in the competition selection screen, the user can choose a year. for that year the app will show all the events in that year
