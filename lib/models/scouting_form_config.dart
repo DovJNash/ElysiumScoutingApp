@@ -3,16 +3,17 @@
 class ScoutingFormConfig {
   static const List<String> startPositions = [
     'Left trench',
-    'Left bumper',
+    'Left bump',
     'Hub',
-    'Right bumper',
+    'Right bump',
     'Right trench',
   ];
 
   static const List<String> exitPaths = [
     'Left trench',
-    'Left bumper',
-    'Right bumper',
+    'Left bump',
+    'Hub',
+    'Right bump',
     'Right trench',
     'None',
   ];
@@ -25,45 +26,100 @@ class ScoutingFormConfig {
     '5. Defense & Climb',
   ];
 
-  static const int minRating = 1;
+  static const int minRating = 0;
   static const int maxRating = 10;
 
   static const List<String> speedDescriptions = [
-    'Extremely slow',
-    'Very slow',
-    'Slow',
-    'Below average',
-    'Average',
-    'Above average',
-    'Fast',
-    'Very fast',
-    'Excellent',
-    'Exceptional',
+    'Over 6 seconds per fuel from first contact to secured; frequent misses or driver resets.',
+    '5–6 seconds per fuel; usually needs a pause or reposition before the next pickup.',
+    '4–5 seconds per fuel; pickup succeeds, but the robot often slows its route.',
+    '3–4 seconds per fuel; steady pickup with occasional hesitation or a missed piece.',
+    '2–3 seconds per fuel; consistent pickup while maintaining a controlled route.',
+    '1.5–2 seconds per fuel; quick pickup with only brief alignment corrections.',
+    '1–1.5 seconds per fuel; fast pickup with little interruption to the cycle.',
+    '0.75–1 second per fuel; very rapid pickup, usually without stopping.',
+    '0.5–0.75 seconds per fuel; near-continuous intake with rare hesitation.',
+    'Under 0.5 seconds per fuel; fuel is secured almost immediately on contact.',
   ];
 
   static const List<String> performanceDescriptions = [
-    'Very poor',
-    'Poor',
-    'Below average',
-    'Average',
-    'Good',
-    'Above average',
-    'Very good',
-    'Excellent',
-    'Outstanding',
-    'Exceptional',
+    'No useful teleop contribution; no reliable scoring or field task was observed.',
+    'Very limited contribution; one task was attempted but repeatedly interrupted.',
+    'Completes a few isolated actions; most cycles are slow, incomplete, or unreliable.',
+    'Contributes intermittently; completes some cycles but has noticeable downtime.',
+    'Completes the basic role at an average pace; several cycles succeed with some errors.',
+    'Completes most cycles reliably; downtime and missed actions are limited.',
+    'Maintains a strong pace; scoring or support actions are consistently completed.',
+    'Sustains high output; transitions are efficient and failures are uncommon.',
+    'Near-continuous contribution; almost every planned cycle or task is completed.',
+    'Exceptional full-period impact; fast, reliable cycles with virtually no wasted time.',
   ];
 
   static const List<String> fivePointDescriptions = [
-    'Very poor',
-    'Poor',
-    'Average',
-    'Good',
-    'Excellent',
+    'No effective result; the action rarely changes the play or is repeatedly unsuccessful.',
+    'Limited effect; the action works occasionally but is often late or incomplete.',
+    'Moderate result; the action usually works, with clear gaps in timing or consistency.',
+    'Strong result; the action is effective and consistent, with only minor misses.',
+    'Excellent result; the action is consistently effective and has a clear impact.',
   ];
 
-  static String fuelDescription(int count) =>
-      '$count ${count == 1 ? 'fuel' : 'fuels'}';
+  static const List<String> fuelRangeDescriptions = [
+    '0–19 fuels; use this lowest band for roughly 10 or fewer.',
+    '20–49 fuels (20+).',
+    '50–74 fuels (50+).',
+    '75–99 fuels.',
+    '100–124 fuels.',
+    '125–149 fuels.',
+    '150–174 fuels.',
+    '175–199 fuels.',
+    '200–224 fuels.',
+    '225–249 fuels.',
+    '250 or more fuels.',
+  ];
+
+  static const List<String> accuracyDescriptions = [
+    'Under 20% of attempted shots score; count only observed attempts, not passes.',
+    '20–39% score; fewer than two in five observed attempts reach the target.',
+    '40–59% score; roughly half of observed attempts reach the target.',
+    '60–79% score; most observed attempts reach the target, with occasional misses.',
+    '80–100% score; at least four in five observed attempts reach the target.',
+  ];
+
+  static const List<String> defenseDescriptions = [
+    'No observable scoring delay; opponents continue their route without adjustment.',
+    'Brief disruption under 10 seconds; an opponent adjusts once but quickly recovers.',
+    'Moderate disruption for 10–19 seconds; at least one opponent cycle is slowed.',
+    'Strong disruption for 20–29 seconds; repeated blocking or redirection is visible.',
+    'Sustained disruption for 30 seconds or more; opposing scoring is repeatedly delayed.',
+  ];
+
+  static const List<String> defenseResilienceDescriptions = [
+    'Cannot complete a scoring route while defended; repeatedly stopped or displaced.',
+    'Completes fewer than one in four routes under defense; frequent resets are needed.',
+    'Completes about half of routes under defense; often finds a workable alternate lane.',
+    'Completes at least three in four routes under defense; rarely loses possession.',
+    'Maintains normal scoring through defense; adapts routes with no meaningful delay.',
+  ];
+
+  static String fuelDescription(int band) =>
+      fuelRangeDescriptions[band.clamp(0, maxRating).toInt()];
+
+  static const List<int> fuelBandMidpoints = [
+    10,
+    35,
+    62,
+    87,
+    112,
+    137,
+    162,
+    187,
+    212,
+    237,
+    275,
+  ];
+
+  static int estimatedFuelCount(int band) =>
+      fuelBandMidpoints[band.clamp(0, maxRating).toInt()];
 
   static String cycleDescription(int count) =>
       '$count ${count == 1 ? 'cycle' : 'cycles'} completed';
@@ -94,7 +150,7 @@ class SuperScoutingFormConfig {
     SuperScoutingFieldSchema(
       key: 'autoExitPath',
       label: 'Autonomous Exit Path',
-      hint: 'Left trench, left bumper, right bumper, right trench, or none',
+      hint: 'Left trench, left bump, hub, right bump, right trench, or none',
       maxLines: 1,
     ),
     SuperScoutingFieldSchema(

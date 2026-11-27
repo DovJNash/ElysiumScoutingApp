@@ -100,10 +100,10 @@ class AnalyticsService {
           ? 0.0
           : rows.map(f).reduce((a, b) => a + b) / rows.length;
 
-      final autoShoot = avg((e) => e.autoShoot);
-      final autoIntake = avg((e) => e.autoIntake);
-      final teleShoot = avg((e) => e.teleopShoot);
-      final teleIntake = avg((e) => e.teleopIntake);
+      final autoShoot = avg((e) => e.estimatedFuelValue(e.autoShoot));
+      final autoIntake = avg((e) => e.estimatedFuelValue(e.autoIntake));
+      final teleShoot = avg((e) => e.estimatedFuelValue(e.teleopShoot));
+      final teleIntake = avg((e) => e.estimatedFuelValue(e.teleopIntake));
       final doingDef = avg((e) => e.doingDefence);
       final standDef = avg((e) => e.standDefence);
       final driver = avg((e) => e.driverSkill);
@@ -241,11 +241,23 @@ class AnalyticsService {
 
           double err(int actual, Iterable<int> vals, double floor) =>
               _normalizedError(actual.toDouble(), _median(vals), floor);
+          double fuelErr(
+            int actual,
+            int Function(ScoutingEntry) select,
+            double floor,
+          ) =>
+              _normalizedError(
+                sub.estimatedFuelValue(actual),
+                _median(
+                  ref.map((entry) => entry.estimatedFuelValue(select(entry))),
+                ),
+                floor,
+              );
 
-          final meanErr = (err(sub.autoShoot, ref.map((e) => e.autoShoot), 10) +
-                  err(sub.autoIntake, ref.map((e) => e.autoIntake), 10) +
-                  err(sub.teleopShoot, ref.map((e) => e.teleopShoot), 20) +
-                  err(sub.teleopIntake, ref.map((e) => e.teleopIntake), 20) +
+          final meanErr = (fuelErr(sub.autoShoot, (e) => e.autoShoot, 10) +
+                  fuelErr(sub.autoIntake, (e) => e.autoIntake, 10) +
+                  fuelErr(sub.teleopShoot, (e) => e.teleopShoot, 20) +
+                  fuelErr(sub.teleopIntake, (e) => e.teleopIntake, 20) +
                   err(sub.driverSkill, ref.map((e) => e.driverSkill), 10) +
                   err(sub.doingDefence, ref.map((e) => e.doingDefence), 10)) /
               6.0;
@@ -278,8 +290,8 @@ class AnalyticsService {
     return results;
   }
 
-  static double _median(Iterable<int> values) {
-    final sorted = values.toList()..sort();
+  static double _median(Iterable<num> values) {
+    final sorted = values.map((value) => value.toDouble()).toList()..sort();
     if (sorted.isEmpty) return 0.0;
     final mid = sorted.length ~/ 2;
     if (sorted.length.isOdd) return sorted[mid].toDouble();

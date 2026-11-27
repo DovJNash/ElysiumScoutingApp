@@ -10,7 +10,9 @@ import '../services/locale_service.dart';
 import '../services/sync_service.dart';
 import '../theme/elysium_theme.dart';
 import 'entry_detail_dialog.dart';
+import 'field_diagram_picker.dart';
 import 'localized_text.dart';
+import 'responsive_counter_pad.dart';
 import 'team_picker.dart';
 
 /// Super Scouting form (team picker -> text form -> submit) for one fixed
@@ -29,6 +31,14 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
   TeamInfo? _team;
   DateTime? _startedAt;
   bool _submitting = false;
+  int _autoShotBand = 0;
+  int _autoDeliveredBand = 0;
+  int _intakeSpeed = 5;
+  bool _canShootWhileMoving = false;
+  bool _canClimb = false;
+  String _autoExitPath = 'None';
+  String _climbLevel = 'L1';
+  int _climbTimeSeconds = 0;
 
   final Map<String, TextEditingController> _c = {
     for (final f in SuperScoutingFormConfig.fields)
@@ -61,6 +71,14 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
     for (final c in _c.values) {
       c.clear();
     }
+    _autoShotBand = 0;
+    _autoDeliveredBand = 0;
+    _intakeSpeed = 5;
+    _canShootWhileMoving = false;
+    _canClimb = false;
+    _autoExitPath = 'None';
+    _climbLevel = 'L1';
+    _climbTimeSeconds = 0;
   }
 
   Future<void> _submit() async {
@@ -93,6 +111,13 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
         ? 90
         : DateTime.now().difference(_startedAt!).inSeconds.clamp(5, 3600);
     String t(String k) => _c[k]!.text.trim();
+    final autoNotes = [
+      t('auto'),
+      'Fuel shot range: ${ScoutingFormConfig.fuelDescription(_autoShotBand)}',
+      'Fuel delivered range: ${ScoutingFormConfig.fuelDescription(_autoDeliveredBand)}',
+    ].where((note) => note.isNotEmpty).join('\n');
+    final movingNotes = t('shootingWhileMoving');
+    final climbNotes = t('climbCapability');
 
     final entry = SuperScoutingEntry(
       id: const Uuid().v4(),
@@ -101,12 +126,14 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
       scouterId: user.id,
       scouterName: user.name,
       teamNum: team.number,
-      auto: t('auto'),
-      autoExitPath: t('autoExitPath'),
+      auto: autoNotes,
+      autoExitPath: _autoExitPath,
       bps: t('bps'),
       shootingLimits: t('shootingLimits'),
       missPercent: t('missPercent'),
-      intakeSpeed: t('intakeSpeed'),
+      intakeSpeed:
+          '${_intakeSpeed}/10: ${ScoutingFormConfig.speedDescriptions[_intakeSpeed - 1]}'
+          '${t('intakeSpeed').isEmpty ? '' : '\n${t('intakeSpeed')}'}',
       robotCap: t('RobotCap'),
       robotLimits: t('robotLimits'),
       driverSkills: t('driverSkills'),
@@ -114,8 +141,13 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
       bumpSpeed: t('bumpSpeed'),
       driverTechnique: t('DriverTechnique'),
       defenceStyle: t('defenceStyle'),
-      shootingWhileMoving: t('shootingWhileMoving'),
-      climbCapability: t('climbCapability'),
+      shootingWhileMoving:
+          'Can shoot while moving: ${_canShootWhileMoving ? 'Yes' : 'No'}'
+          '${movingNotes.isEmpty ? '' : '\n$movingNotes'}',
+      climbCapability: _canClimb
+          ? 'Yes, $_climbLevel; climb time: ${_climbTimeSeconds}s'
+              '${climbNotes.isEmpty ? '' : '\n$climbNotes'}'
+          : 'No${climbNotes.isEmpty ? '' : '\n$climbNotes'}',
       durationSeconds: duration,
       createdAt: DateTime.now().toUtc().toIso8601String(),
       isSynced: false,
@@ -164,9 +196,9 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: const BoxDecoration(
-            color: Elysium.surface,
-            border: Border(bottom: BorderSide(color: Elysium.border)),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(bottom: BorderSide(color: theme.dividerColor)),
           ),
           child: Row(
             children: [
@@ -197,16 +229,7 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
               ...SuperScoutingFormConfig.fields.map(
                 (f) => Padding(
                   padding: const EdgeInsets.only(bottom: 14),
-                  child: TextField(
-                    controller: _c[f.key],
-                    maxLines: f.maxLines,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration(
-                      labelText: LocaleService.instance.text(f.label),
-                      hintText: LocaleService.instance.text(f.hint),
-                      alignLabelWithHint: true,
-                    ),
-                  ),
+                  child: _field(f),
                 ),
               ),
               const SizedBox(height: 4),
@@ -228,4 +251,246 @@ class _SuperScoutingPageState extends State<SuperScoutingPage>
       ],
     );
   }
+
+  Widget _field(SuperScoutingFieldSchema field) {
+    switch (field.key) {
+      case 'auto':
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _notesField(field),
+            const SizedBox(height: 12),
+            _fuelSlider(
+              'Autonomous fuels shot (range)',
+              _autoShotBand,
+              (value) => setState(() => _autoShotBand = value),
+            ),
+            const SizedBox(height: 12),
+            _fuelSlider(
+              'Autonomous fuels delivered (range)',
+              _autoDeliveredBand,
+              (value) => setState(() => _autoDeliveredBand = value),
+            ),
+          ],
+        );
+      case 'autoExitPath':
+        return FieldDiagramPicker(
+          title: field.label,
+          value: _autoExitPath,
+          options: ScoutingFormConfig.exitPaths,
+          pathMode: true,
+          onChanged: (value) => setState(() => _autoExitPath = value),
+        );
+      case 'intakeSpeed':
+        return _ratingSlider(
+          'How fast was the intake?',
+          _intakeSpeed,
+          ScoutingFormConfig.speedDescriptions,
+          (value) => setState(() => _intakeSpeed = value),
+          min: 1,
+          controllerField: field,
+        );
+      case 'shootingWhileMoving':
+        return Column(
+          children: [
+            _yesNo(
+              'Can the robot shoot while moving?',
+              _canShootWhileMoving,
+              (value) => setState(() => _canShootWhileMoving = value),
+            ),
+            const SizedBox(height: 8),
+            _notesField(field),
+          ],
+        );
+      case 'climbCapability':
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _yesNo(
+              'Did the robot climb?',
+              _canClimb,
+              (value) => setState(() => _canClimb = value),
+            ),
+            if (_canClimb) ...[
+              const SizedBox(height: 8),
+              const Text('Climb level',
+                  style: TextStyle(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              _chipGroup(
+                const ['L1', 'L2', 'L3'],
+                _climbLevel,
+                (value) => setState(() => _climbLevel = value),
+              ),
+              const SizedBox(height: 8),
+              ResponsiveCounterPad(
+                label: 'Climb time (seconds)',
+                value: _climbTimeSeconds,
+                accentColor: Elysium.accent,
+                extraDeltas: const [-5, 5],
+                onChanged: (value) => setState(() => _climbTimeSeconds = value),
+              ),
+            ],
+            const SizedBox(height: 8),
+            _notesField(field),
+          ],
+        );
+      default:
+        return _notesField(field);
+    }
+  }
+
+  Widget _notesField(SuperScoutingFieldSchema field) => TextField(
+        controller: _c[field.key],
+        maxLines: field.maxLines,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: InputDecoration(
+          labelText: LocaleService.instance.text(field.label),
+          hintText: LocaleService.instance.text(field.hint),
+          alignLabelWithHint: true,
+        ),
+      );
+
+  Widget _fuelSlider(
+    String label,
+    int value,
+    ValueChanged<int> onChanged,
+  ) {
+    final description = ScoutingFormConfig.fuelDescription(value);
+    return ElysiumCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              Text(
+                '$value / 10',
+                style: const TextStyle(
+                  color: Elysium.primary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          Slider(
+            value: value.toDouble(),
+            min: 0,
+            max: 10,
+            divisions: 10,
+            label: '$value',
+            onChanged: (next) => onChanged(next.round()),
+          ),
+          Text(
+            LocaleService.instance.text(description),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ratingSlider(
+    String label,
+    int value,
+    List<String> descriptions,
+    ValueChanged<int> onChanged, {
+    int min = 0,
+    required SuperScoutingFieldSchema controllerField,
+  }) {
+    final description = descriptions[value - min];
+    return Column(
+      children: [
+        ElysiumCard(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+              Slider(
+                value: value.toDouble(),
+                min: min.toDouble(),
+                max: (min + descriptions.length - 1).toDouble(),
+                divisions: descriptions.length - 1,
+                label: '$value',
+                onChanged: (next) => onChanged(next.round()),
+              ),
+              Text(LocaleService.instance.text(description)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        _notesField(controllerField),
+      ],
+    );
+  }
+
+  Widget _yesNo(String title, bool value, ValueChanged<bool> onChanged) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    return ElysiumCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              for (final option in [true, false]) ...[
+                Expanded(
+                  child: ChoiceChip(
+                    label: Center(child: Text(option ? 'Yes' : 'No')),
+                    selected: value == option,
+                    onSelected: (_) => onChanged(option),
+                    showCheckmark: false,
+                    selectedColor: theme.colorScheme.primary,
+                    backgroundColor: dark
+                        ? const Color(0xFF243A56)
+                        : Elysium.surface2,
+                    labelStyle: TextStyle(
+                      color: value == option
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                if (option) const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chipGroup(
+    List<String> options,
+    String selected,
+    ValueChanged<String> onPick,
+  ) =>
+      Wrap(
+        spacing: 8,
+        children: options
+            .map(
+              (option) => ChoiceChip(
+                label: Text(option),
+                selected: selected == option,
+                onSelected: (_) => onPick(option),
+                showCheckmark: false,
+                selectedColor: Theme.of(context).colorScheme.primary,
+                labelStyle: TextStyle(
+                  color: selected == option
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+            )
+            .toList(),
+      );
 }

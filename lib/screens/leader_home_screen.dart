@@ -143,6 +143,7 @@ class _LeaderHomeScreenState extends State<LeaderHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final leader = AuthService.instance.currentUser!;
+    final theme = Theme.of(context);
     return DefaultTabController(
       length: 7,
       child: Builder(
@@ -246,10 +247,10 @@ class _LeaderHomeScreenState extends State<LeaderHomeScreen> {
                     : Column(
                         children: [
                           Container(
-                            decoration: const BoxDecoration(
-                              color: Elysium.surface,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface,
                               border: Border(
-                                bottom: BorderSide(color: Elysium.border),
+                                bottom: BorderSide(color: theme.dividerColor),
                               ),
                             ),
                             padding: const EdgeInsets.symmetric(
@@ -289,7 +290,8 @@ class _LeaderHomeScreenState extends State<LeaderHomeScreen> {
                                   child: DropdownButton<CompetitionInfo>(
                                     value: _comp,
                                     isExpanded: true,
-                                    dropdownColor: Elysium.surface2,
+                                    dropdownColor:
+                                        Theme.of(context).colorScheme.surface,
                                     underline: const SizedBox.shrink(),
                                     items: _competitions
                                         .map(
@@ -731,7 +733,7 @@ class _FormsTab extends StatelessWidget {
       return (color: Elysium.muted, label: 'Not enough peer forms');
     }
 
-    double median(List<int> values) {
+    double median(Iterable<num> values) {
       final sorted = [...values]..sort();
       final middle = sorted.length ~/ 2;
       return sorted.length.isOdd
@@ -739,29 +741,35 @@ class _FormsTab extends StatelessWidget {
           : (sorted[middle - 1] + sorted[middle]) / 2;
     }
 
-    double normalizedError(int value, double reference, int floor) =>
+    double normalizedError(num value, double reference, int floor) =>
         ((value - reference).abs() / max(reference.abs(), floor.toDouble()))
             .clamp(0.0, 1.0);
 
     final error = [
           normalizedError(
-            entry.autoShoot,
-            median(peers.map((item) => item.autoShoot).toList()),
+            entry.estimatedFuelValue(entry.autoShoot),
+            median(peers.map((item) => item.estimatedFuelValue(item.autoShoot))),
             10,
           ),
           normalizedError(
-            entry.autoIntake,
-            median(peers.map((item) => item.autoIntake).toList()),
+            entry.estimatedFuelValue(entry.autoIntake),
+            median(
+              peers.map((item) => item.estimatedFuelValue(item.autoIntake)),
+            ),
             10,
           ),
           normalizedError(
-            entry.teleopShoot,
-            median(peers.map((item) => item.teleopShoot).toList()),
+            entry.estimatedFuelValue(entry.teleopShoot),
+            median(
+              peers.map((item) => item.estimatedFuelValue(item.teleopShoot)),
+            ),
             20,
           ),
           normalizedError(
-            entry.teleopIntake,
-            median(peers.map((item) => item.teleopIntake).toList()),
+            entry.estimatedFuelValue(entry.teleopIntake),
+            median(
+              peers.map((item) => item.estimatedFuelValue(item.teleopIntake)),
+            ),
             20,
           ),
           normalizedError(
@@ -826,7 +834,8 @@ class _FormsTab extends StatelessWidget {
                             ? '[Match ${s.matchNum}] Team ${s.teamNum} — ${s.scouterName}'
                             : '[Super] Team ${u!.teamNum} — ${u.scouterName}';
                         final sub = s != null
-                            ? 'Auto scored ${s.autoShoot}; alliance fuels ${s.autoIntake} | Teleop scored ${s.teleopShoot}; alliance fuels ${s.teleopIntake} | ${s.durationSeconds}s'
+                            ? 'Auto scored ${s.fuelValue(s.autoShoot)}; alliance fuels ${s.fuelValue(s.autoIntake)} | '
+                                'Teleop scored ${s.fuelValue(s.teleopShoot)}; alliance fuels ${s.fuelValue(s.teleopIntake)} | ${s.durationSeconds}s'
                             : 'BPS ${u!.bps.isEmpty ? '-' : u.bps} | Miss ${u.missPercent.isEmpty ? '-' : u.missPercent}';
                         final synced = s?.isSynced ?? u!.isSynced;
 

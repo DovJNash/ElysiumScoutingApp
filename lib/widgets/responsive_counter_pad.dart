@@ -3,13 +3,13 @@ import 'package:flutter/services.dart';
 import '../theme/elysium_theme.dart';
 import 'localized_text.dart';
 
-/// Two-tier counter: big -1 / +1 on top, batch -50 -10 +10 +50 below.
-/// Clamped to 0..9999 with haptic feedback.
+/// Counter with ±1 controls and optional extra deltas, clamped to 0..9999.
 class ResponsiveCounterPad extends StatelessWidget {
   final String label;
   final int value;
   final ValueChanged<int> onChanged;
   final Color accentColor;
+  final List<int> extraDeltas;
 
   const ResponsiveCounterPad({
     super.key,
@@ -17,6 +17,7 @@ class ResponsiveCounterPad extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.accentColor = Elysium.primary,
+    this.extraDeltas = const [],
   });
 
   void _applyDelta(int delta) {
@@ -26,6 +27,10 @@ class ResponsiveCounterPad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    final controlSurface =
+        dark ? const Color(0xFF243A56) : Elysium.surface2;
     return ElysiumCard(
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -42,7 +47,7 @@ class ResponsiveCounterPad extends StatelessWidget {
                   height: 56,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Elysium.surface2,
+                      backgroundColor: controlSurface,
                       foregroundColor: Elysium.danger,
                     ),
                     onPressed: value > 0 ? () => _applyDelta(-1) : null,
@@ -57,7 +62,7 @@ class ResponsiveCounterPad extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Elysium.surface2,
+                      color: controlSurface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: accentColor.fade(0.6)),
                     ),
@@ -66,7 +71,9 @@ class ResponsiveCounterPad extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w900,
-                        color: accentColor,
+                        color: dark
+                            ? theme.colorScheme.onSurface
+                            : accentColor,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -89,24 +96,24 @@ class ResponsiveCounterPad extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              _batch('-50', -50, true),
-              const SizedBox(width: 8),
-              _batch('-10', -10, true),
-              const SizedBox(width: 14),
-              _batch('+10', 10, false),
-              const SizedBox(width: 8),
-              _batch('+50', 50, false),
-            ],
-          ),
+          if (extraDeltas.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                for (var i = 0; i < extraDeltas.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  _extra(extraDeltas[i]),
+                ],
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _batch(String text, int delta, bool negative) {
+  Widget _extra(int delta) {
+    final negative = delta < 0;
     final color = negative ? Elysium.danger : Elysium.success;
     final disabled = negative && value == 0;
     return Expanded(
@@ -121,7 +128,10 @@ class ResponsiveCounterPad extends StatelessWidget {
           onPressed: disabled ? null : () => _applyDelta(delta),
           child: FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(text, style: const TextStyle(fontSize: 14)),
+            child: Text(
+              '${delta > 0 ? '+' : ''}$delta',
+              style: const TextStyle(fontSize: 14),
+            ),
           ),
         ),
       ),

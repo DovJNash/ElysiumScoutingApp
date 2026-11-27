@@ -1,3 +1,5 @@
+import 'scouting_form_config.dart';
+
 class ScoutingEntry {
   final String id;
   final String uniqueKey;
@@ -18,6 +20,7 @@ class ScoutingEntry {
   final int teleopShoot;
   final int teleopIntake;
   final bool robotShowed;
+  final bool fuelCountsAreRanges;
   final int autoCycles;
   final int autoFuelsDelivered;
   final int autoIntakeSpeed;
@@ -63,6 +66,7 @@ class ScoutingEntry {
     required this.teleopShoot,
     required this.teleopIntake,
     this.robotShowed = true,
+    this.fuelCountsAreRanges = false,
     this.autoCycles = 0,
     this.autoFuelsDelivered = 0,
     this.autoIntakeSpeed = 0,
@@ -126,6 +130,7 @@ class ScoutingEntry {
         teleopShoot: teleopShoot,
         teleopIntake: teleopIntake,
         robotShowed: robotShowed,
+        fuelCountsAreRanges: fuelCountsAreRanges,
         autoCycles: autoCycles,
         autoFuelsDelivered: autoFuelsDelivered,
         autoIntakeSpeed: autoIntakeSpeed,
@@ -173,6 +178,7 @@ class ScoutingEntry {
         'teleopShoot': teleopShoot,
         'teleopIntake': teleopIntake,
         'robotShowed': robotShowed,
+        'fuelCountsAreRanges': fuelCountsAreRanges,
         'autoCycles': autoCycles,
         'autoFuelsDelivered': autoFuelsDelivered,
         'autoIntakeSpeed': autoIntakeSpeed,
@@ -201,6 +207,7 @@ class ScoutingEntry {
   Map<String, dynamic> toSqliteMap() => {
         ...toSupabaseMap(),
         'robotShowed': robotShowed ? 1 : 0,
+        'fuelCountsAreRanges': fuelCountsAreRanges ? 1 : 0,
         'teleopCanShootMoving': teleopCanShootMoving ? 1 : 0,
         'playedDefense': playedDefense ? 1 : 0,
         'dealtWithDefense': dealtWithDefense ? 1 : 0,
@@ -240,6 +247,7 @@ class ScoutingEntry {
       teleopShoot: i('teleopShoot', 0),
       teleopIntake: i('teleopIntake', 0),
       robotShowed: b('robotShowed', true),
+      fuelCountsAreRanges: b('fuelCountsAreRanges', false),
       autoCycles: i('autoCycles', 0),
       autoFuelsDelivered: i('autoFuelsDelivered', 0),
       autoIntakeSpeed: i('autoIntakeSpeed', 0),
@@ -278,15 +286,15 @@ class ScoutingEntry {
         'Start position': startPos,
         'Exit path': exitPos,
         'Robot showed up': robotShowed ? 'Yes' : 'No',
-        'Autonomous fuels shot': '$autoShoot',
+        'Autonomous fuels shot': fuelValue(autoShoot),
         'Autonomous cycles': '$autoCycles',
-        'Autonomous fuels delivered': '$autoFuelsDelivered',
+        'Autonomous fuels delivered': fuelValue(autoFuelsDelivered),
         'Autonomous intake speed': '$autoIntakeSpeed/10',
         'Autonomous performance': '$autoPerformance/5',
         'Shoots while moving': teleopCanShootMoving ? 'Yes' : 'No',
-        'Teleop fuels shot': '$teleopShoot',
+        'Teleop fuels shot': fuelValue(teleopShoot),
         'Teleop cycles': '$teleopCycles',
-        'Teleop fuels delivered': '$teleopFuelsDelivered',
+        'Teleop fuels delivered': fuelValue(teleopFuelsDelivered),
         'Teleop intake speed': '$teleopIntakeSpeed/10',
         'Teleop accuracy': '$teleopAccuracy/5',
         'Teleop performance': '$teleopPerformance/10',
@@ -298,9 +306,9 @@ class ScoutingEntry {
         'Climb level': climbLevel.isEmpty ? '-' : climbLevel,
         'Climb time': '${climbTimeSeconds}s',
         'Auto scored': '$autoShoot',
-        'Fuels passed to alliance zone (auto)': '$autoIntake',
+        'Fuels passed to alliance zone (auto)': fuelValue(autoIntake),
         'Teleop scored': '$teleopShoot',
-        'Fuels passed to alliance zone (teleop)': '$teleopIntake',
+        'Fuels passed to alliance zone (teleop)': fuelValue(teleopIntake),
         'Alliance zone (s)': '$allianceCount',
         'Neutral zone (s)': '$neutralCount',
         'Opponent zone (s)': '$opponentCount',
@@ -311,4 +319,12 @@ class ScoutingEntry {
         'Form time': '${durationSeconds}s',
         'Synced': isSynced ? 'Yes' : 'Waiting for internet',
       };
+
+  String fuelValue(int value) => fuelCountsAreRanges
+      ? ScoutingFormConfig.fuelDescription(value)
+      : '$value';
+
+  double estimatedFuelValue(int value) => fuelCountsAreRanges
+      ? ScoutingFormConfig.estimatedFuelCount(value).toDouble()
+      : value.toDouble();
 }

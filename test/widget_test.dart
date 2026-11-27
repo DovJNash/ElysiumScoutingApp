@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:frc_scouting_app/models/pit_scouting_entry.dart';
 import 'package:frc_scouting_app/models/scouting_entry.dart';
+import 'package:frc_scouting_app/models/scouting_form_config.dart';
 import 'package:frc_scouting_app/models/team_model.dart';
 import 'package:frc_scouting_app/models/user_model.dart';
 import 'package:frc_scouting_app/screens/auth_screen.dart';
@@ -109,6 +110,29 @@ void main() {
     expect(restored.notes, 'Robot did not show up.');
     expect(restored.autoPerformance, 0);
     expect(restored.toSupabaseMap()['robotShowed'], isFalse);
+
+    final legacyMap = entry.toSqliteMap()
+      ..remove('fuelCountsAreRanges');
+    final legacy = ScoutingEntry.fromMap(legacyMap);
+    expect(legacy.fuelCountsAreRanges, isFalse);
+    expect(legacy.detailRows()['Autonomous fuels shot'], '0');
+
+    final ranged = ScoutingEntry.fromMap({
+      ...entry.toSqliteMap(),
+      'fuelCountsAreRanges': 1,
+      'autoShoot': 2,
+    });
+    expect(ranged.fuelCountsAreRanges, isTrue);
+    expect(ranged.detailRows()['Autonomous fuels shot'], '50–74 fuels (50+).');
+    expect(ranged.estimatedFuelValue(2), 62);
+    expect(ranged.toSupabaseMap()['fuelCountsAreRanges'], isTrue);
+  });
+
+  test('fuel range bands match the requested examples', () {
+    expect(ScoutingFormConfig.fuelDescription(0), contains('0–19'));
+    expect(ScoutingFormConfig.fuelDescription(1), '20–49 fuels (20+).');
+    expect(ScoutingFormConfig.fuelDescription(2), '50–74 fuels (50+).');
+    expect(ScoutingFormConfig.fuelDescription(99), '250 or more fuels.');
   });
 
   test('match assignment matches event, level, set, and number', () {

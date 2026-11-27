@@ -168,9 +168,10 @@ Every account deletes only the forms it submitted itself; a Leader can also dele
 ## Future features V3
 - [x] Leaders can update their team's Strategy and Leader access codes through the app; codes remain in Supabase's private table.
 - [x] Normal scouting asks whether the robot showed up. A no-show is submitted with empty gameplay values and a note.
-- [x] Starting location and autonomous exit path are selected on a bundled, original top-view field diagram with tappable locations. The app does not bundle an unlicensed internet image.
+- [x] Starting location and autonomous exit path are selected with tappable field regions; the user-provided field image is loaded when added at the documented asset path, with a built-in schematic fallback.
 - [x] Autonomous scouting records fuels shot, cycles, fuels delivered, intake speed, exit path, and overall performance with descriptions for every scale value.
 - [x] Teleop scouting records shooting while moving, fuels shot, cycles, fuels delivered, intake speed, shooting accuracy, and overall performance with descriptions for every scale value.
+- [x] Fuel shot/delivery sliders use 0–10 range bands; cycle counters move by one and climb time supports ±1 and ±5 seconds.
 - [x] Defense and climb scouting records yes/no responses, conditional ratings, driver rating, climb level/time, and notes.
 - [x] Leaders can assign specific event matches to their team's Scouter and Strategy accounts; those accounts see only assigned matches.
 - [x] Every user has a profile with their details, submitted forms, name/password updates, account deletion, logout, dark mode, and English/Hebrew preferences.
@@ -179,6 +180,7 @@ Every account deletes only the forms it submitted itself; a Leader can also dele
 - [x] Competition and schedule screens allow choosing 2026 or 2027 and show Israeli TBA events for that year, including off-season events listed by TBA.
 
 ### V3 notes
-- Run the updated `supabase_setup.sql` against the existing project; its additions are forward-compatible and do not require `supabase_reset.sql`.
+- Run the updated `supabase_setup.sql` against the existing project to add the `fuelCountsAreRanges` column; its additions are forward-compatible and do not require `supabase_reset.sql`. New fuel sliders store a range-band index, while older exact-count records remain unchanged.
+- To use the supplied REBUILT field image, place it at `assets/images/FE-2026-_REBUILT_Playing_Field_With_Fuel_With_Background.png`; until that file is added, the field picker falls back to its built-in schematic.
 - Leader access-code and assignment mutations require an internet connection and are verified by Supabase using the Leader's password. Previously loaded assignments remain available offline, and match scouting continues to save locally before syncing.
 - Deleting an account also deletes that account's submitted match, Super Scouting, and Pit forms and its assignments.

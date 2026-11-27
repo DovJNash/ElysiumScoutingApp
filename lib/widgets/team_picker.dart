@@ -155,9 +155,11 @@ class _TeamPickerState extends State<TeamPicker> {
     return Column(
       children: [
         Container(
-          decoration: const BoxDecoration(
-            color: Elysium.surface,
-            border: Border(bottom: BorderSide(color: Elysium.border)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border(
+              bottom: BorderSide(color: Theme.of(context).dividerColor),
+            ),
           ),
           padding: const EdgeInsets.fromLTRB(8, 6, 16, 10),
           child: Column(

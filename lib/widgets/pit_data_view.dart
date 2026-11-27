@@ -249,6 +249,7 @@ class _PitDataViewState extends State<PitDataView> {
   }
 
   Widget _formCard(PitScoutingEntry entry) {
+    final theme = Theme.of(context);
     final fields = <(String, String)>[
       ('Autonomous types', entry.autonomousTypes),
       ('What the team does well', entry.strengths),
@@ -262,9 +263,11 @@ class _PitDataViewState extends State<PitDataView> {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Elysium.surface2,
+        color: theme.brightness == Brightness.dark
+            ? const Color(0xFF243A56)
+            : Elysium.surface2,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Elysium.border),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -146,6 +146,8 @@ class LocaleService extends ChangeNotifier {
     'Right Lane': 'מסלול ימני',
     'Did Not Exit': 'לא יצא',
     'Starting Position': 'עמדת התחלה',
+    'Left bump': 'באמפ ימין',
+    'Right bump': 'באמפ שמאל',
     'Exit Path': 'מסלול יציאה',
     'AUTONOMOUS PERIOD': 'שלב אוטונומי',
     'Auto Game Pieces Scored': 'משחקים שנצברו באוטונומי',
@@ -330,6 +332,8 @@ class LocaleService extends ChangeNotifier {
     'This permanently deletes your account and all scouting forms you submitted. This cannot be undone.':
         'פעולה זו מוחקת לצמיתות את החשבון ואת כל טפסי הסקאוטינג ששלחת. אי אפשר לבטל אותה.',
     'Did the robot show up to the match?': 'האם הרובוט הגיע למשחק?',
+    'Yes': 'כן',
+    'No': 'לא',
     'Selecting No will submit this match with empty gameplay values and a note that the robot did not show up.':
         'בחירה ב״לא״ תשלח את הטופס עם שדות משחק ריקים והערה שהרובוט לא הגיע.',
     'Robot exit path': 'מסלול יציאת הרובוט',
@@ -338,16 +342,27 @@ class LocaleService extends ChangeNotifier {
     'Tap the robot starting location in the blue alliance zone.':
         'יש לבחור את נקודת ההתחלה של הרובוט באזור הברית הכחולה.',
     'No selection': 'לא נבחר',
-    'Left trench': 'תעלה שמאלית',
-    'Left bumper': 'בליטה שמאלית',
-    'Hub': 'מרכז',
-    'Right bumper': 'בליטה ימנית',
-    'Right trench': 'תעלה ימנית',
+    'Field photo missing; showing schematic.':
+        'תמונת המגרש חסרה; מוצגת סכימה חלופית.',
+    'Left trench': 'טראנצ שמאל',
+    'Hub': 'האב',
+    'Right trench': 'טראנצ ימין',
     'None': 'ללא',
     'How many fuels did the robot shoot?': 'כמה דלקים הרובוט ירה?',
+    'How many fuels did the robot shoot? (range)':
+        'כמה דלקים הרובוט ירה? (טווח)',
     'How many cycles did the robot do?': 'כמה מחזורים הרובוט ביצע?',
     'How many fuels did the robot deliver?': 'כמה דלקים הרובוט העביר?',
+    'How many fuels did the robot deliver? (range)':
+        'כמה דלקים הרובוט העביר? (טווח)',
     'How fast was the robot intake?': 'מה הייתה מהירות איסוף הדלקים?',
+    'How fast was the intake?': 'מה הייתה מהירות האיסוף?',
+    'Autonomous fuels shot (range)': 'טווח כמות הדלקים שנורו באוטונומי',
+    'Autonomous fuels delivered (range)': 'טווח כמות הדלקים שהועברו באוטונומי',
+    'Climb time (seconds)': 'זמן טיפוס (בשניות)',
+    'Autonomous Exit Path': 'מסלול יציאה באוטונומי',
+    'Shooting While Moving': 'ירי תוך כדי תנועה',
+    'Climb Capability': 'יכולת טיפוס',
     'Overall autonomous performance': 'ביצועי האוטונומי הכלליים',
     'Can the robot shoot while moving?': 'האם הרובוט יכול לירות תוך כדי תנועה?',
     'How accurate is the robot shooting?': 'מה דיוק הירי של הרובוט?',
@@ -365,20 +380,98 @@ class LocaleService extends ChangeNotifier {
     'Notes about the match': 'הערות על המשחק',
     'Add notes about the robot or match...':
         'הוספת הערות על הרובוט או המשחק...',
-    'Extremely slow': 'איטי באופן קיצוני',
-    'Very slow': 'איטי מאוד',
-    'Slow': 'איטי',
-    'Below average': 'מתחת לממוצע',
-    'Above average': 'מעל הממוצע',
-    'Fast': 'מהיר',
-    'Very fast': 'מהיר מאוד',
-    'Excellent': 'מצוין',
-    'Exceptional': 'יוצא מן הכלל',
-    'Very poor': 'גרוע מאוד',
-    'Poor': 'גרוע',
-    'Good': 'טוב',
-    'Very good': 'טוב מאוד',
-    'Outstanding': 'מעולה',
+    '0–19 fuels; use this lowest band for roughly 10 or fewer.':
+        '0–19 דלקים; יש לבחור בטווח הנמוך הזה עבור כ-10 דלקים או פחות.',
+    '20–49 fuels (20+).': '20–49 דלקים (20 ומעלה).',
+    '50–74 fuels (50+).': '50–74 דלקים (50 ומעלה).',
+    '75–99 fuels.': '75–99 דלקים.',
+    '100–124 fuels.': '100–124 דלקים.',
+    '125–149 fuels.': '125–149 דלקים.',
+    '150–174 fuels.': '150–174 דלקים.',
+    '175–199 fuels.': '175–199 דלקים.',
+    '200–224 fuels.': '200–224 דלקים.',
+    '225–249 fuels.': '225–249 דלקים.',
+    '250 or more fuels.': '250 דלקים או יותר.',
+    'Over 6 seconds per fuel from first contact to secured; frequent misses or driver resets.':
+        'מעל 6 שניות ממגע בדלק ועד קליטתו; יש החטאות רבות או איפוסי נהג.',
+    '5–6 seconds per fuel; usually needs a pause or reposition before the next pickup.':
+        '5–6 שניות לדלק; לרוב נדרשת עצירה או התאמה מחדש לפני האיסוף הבא.',
+    '4–5 seconds per fuel; pickup succeeds, but the robot often slows its route.':
+        '4–5 שניות לדלק; האיסוף מצליח אך הרובוט מאט לעיתים קרובות.',
+    '3–4 seconds per fuel; steady pickup with occasional hesitation or a missed piece.':
+        '3–4 שניות לדלק; איסוף יציב עם היסוס או החטאה מדי פעם.',
+    '2–3 seconds per fuel; consistent pickup while maintaining a controlled route.':
+        '2–3 שניות לדלק; איסוף עקבי תוך שמירה על מסלול מבוקר.',
+    '1.5–2 seconds per fuel; quick pickup with only brief alignment corrections.':
+        '1.5–2 שניות לדלק; איסוף מהיר עם תיקוני יישור קצרים בלבד.',
+    '1–1.5 seconds per fuel; fast pickup with little interruption to the cycle.':
+        '1–1.5 שניות לדלק; איסוף מהיר עם הפרעה מועטה למחזור.',
+    '0.75–1 second per fuel; very rapid pickup, usually without stopping.':
+        '0.75–1 שנייה לדלק; איסוף מהיר מאוד, בדרך כלל ללא עצירה.',
+    '0.5–0.75 seconds per fuel; near-continuous intake with rare hesitation.':
+        '0.5–0.75 שניות לדלק; איסוף כמעט רציף עם היסוס נדיר.',
+    'Under 0.5 seconds per fuel; fuel is secured almost immediately on contact.':
+        'פחות מ-0.5 שניות לדלק; הדלק נקלט כמעט מיד במגע.',
+    'No useful teleop contribution; no reliable scoring or field task was observed.':
+        'אין תרומה שימושית בטלאופ; לא נצפו ניקוד אמין או ביצוע משימה.',
+    'Very limited contribution; one task was attempted but repeatedly interrupted.':
+        'תרומה מוגבלת מאוד; נעשה ניסיון למשימה אחת אך הוא הופרע שוב ושוב.',
+    'Completes a few isolated actions; most cycles are slow, incomplete, or unreliable.':
+        'משלים פעולות בודדות; רוב המחזורים איטיים, חלקיים או לא אמינים.',
+    'Contributes intermittently; completes some cycles but has noticeable downtime.':
+        'תורם לסירוגין; משלים חלק מהמחזורים אך יש זמן השבתה מורגש.',
+    'Completes the basic role at an average pace; several cycles succeed with some errors.':
+        'מבצע את התפקיד הבסיסי בקצב ממוצע; כמה מחזורים מצליחים עם טעויות.',
+    'Completes most cycles reliably; downtime and missed actions are limited.':
+        'משלים את רוב המחזורים באמינות; זמן ההשבתה והפעולות שהוחמצו מוגבלים.',
+    'Maintains a strong pace; scoring or support actions are consistently completed.':
+        'שומר על קצב טוב; פעולות הניקוד או התמיכה מתבצעות בעקביות.',
+    'Sustains high output; transitions are efficient and failures are uncommon.':
+        'שומר על תפוקה גבוהה; המעברים יעילים וכשלים נדירים.',
+    'Near-continuous contribution; almost every planned cycle or task is completed.':
+        'תורם כמעט ברציפות; כמעט כל מחזור או משימה מתוכננים מושלמים.',
+    'Exceptional full-period impact; fast, reliable cycles with virtually no wasted time.':
+        'השפעה יוצאת דופן לאורך כל המשחק; מחזורים מהירים ואמינים כמעט ללא זמן מבוזבז.',
+    'Under 20% of attempted shots score; count only observed attempts, not passes.':
+        'פחות מ-20% מניסיונות הירי קולעים; יש לספור ניסיונות שנצפו ולא מסירות.',
+    '20–39% score; fewer than two in five observed attempts reach the target.':
+        '20–39% קולעים; פחות משניים מכל חמישה ניסיונות שנצפו מגיעים למטרה.',
+    '40–59% score; roughly half of observed attempts reach the target.':
+        '40–59% קולעים; בערך מחצית מהניסיונות שנצפו מגיעים למטרה.',
+    '60–79% score; most observed attempts reach the target, with occasional misses.':
+        '60–79% קולעים; רוב הניסיונות מגיעים למטרה עם החטאות מדי פעם.',
+    '80–100% score; at least four in five observed attempts reach the target.':
+        '80–100% קולעים; לפחות ארבעה מכל חמישה ניסיונות מגיעים למטרה.',
+    'No observable scoring delay; opponents continue their route without adjustment.':
+        'אין עיכוב ניקוד נצפה; היריבים ממשיכים במסלול ללא שינוי.',
+    'Brief disruption under 10 seconds; an opponent adjusts once but quickly recovers.':
+        'הפרעה קצרה של פחות מ-10 שניות; יריב משנה מסלול פעם אחת ומתאושש במהירות.',
+    'Moderate disruption for 10–19 seconds; at least one opponent cycle is slowed.':
+        'הפרעה בינונית של 10–19 שניות; לפחות מחזור אחד של היריב מואט.',
+    'Strong disruption for 20–29 seconds; repeated blocking or redirection is visible.':
+        'הפרעה משמעותית של 20–29 שניות; נראים חסימה או שינוי מסלול חוזרים.',
+    'Sustained disruption for 30 seconds or more; opposing scoring is repeatedly delayed.':
+        'הפרעה מתמשכת של 30 שניות ומעלה; ניקוד היריב מתעכב שוב ושוב.',
+    'Cannot complete a scoring route while defended; repeatedly stopped or displaced.':
+        'אינו משלים מסלול ניקוד תחת הגנה; נעצר או נדחק שוב ושוב.',
+    'Completes fewer than one in four routes under defense; frequent resets are needed.':
+        'משלים פחות ממסלול אחד מכל ארבעה תחת הגנה; נדרשים איפוסים רבים.',
+    'Completes about half of routes under defense; often finds a workable alternate lane.':
+        'משלים כמחצית מהמסלולים תחת הגנה; מוצא לעיתים קרובות נתיב חלופי.',
+    'Completes at least three in four routes under defense; rarely loses possession.':
+        'משלים לפחות שלושה מכל ארבעה מסלולים תחת הגנה; כמעט לא מאבד החזקה.',
+    'Maintains normal scoring through defense; adapts routes with no meaningful delay.':
+        'שומר על ניקוד רגיל מול הגנה; מתאים מסלולים ללא עיכוב משמעותי.',
+    'No effective result; the action rarely changes the play or is repeatedly unsuccessful.':
+        'אין תוצאה יעילה; הפעולה כמעט לא משנה את המשחק או נכשלת שוב ושוב.',
+    'Limited effect; the action works occasionally but is often late or incomplete.':
+        'השפעה מוגבלת; הפעולה מצליחה מדי פעם אך לרוב מאוחרת או חלקית.',
+    'Moderate result; the action usually works, with clear gaps in timing or consistency.':
+        'תוצאה בינונית; הפעולה בדרך כלל מצליחה אך יש פערים בתזמון או בעקביות.',
+    'Strong result; the action is effective and consistent, with only minor misses.':
+        'תוצאה טובה; הפעולה יעילה ועקבית עם החטאות קלות בלבד.',
+    'Excellent result; the action is consistently effective and has a clear impact.':
+        'תוצאה מצוינת; הפעולה יעילה בעקביות ומשפיעה בבירור.',
     'Leader tools': 'כלי מנהל',
     'Access codes': 'קודי גישה',
     'Assignments': 'שיבוצים',

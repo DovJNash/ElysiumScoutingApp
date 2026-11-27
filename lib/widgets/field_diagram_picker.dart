@@ -33,7 +33,7 @@ class FieldDiagramPicker extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           AspectRatio(
-            aspectRatio: 2,
+            aspectRatio: 0.6,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final size = constraints.biggest;
@@ -42,11 +42,38 @@ class FieldDiagramPicker extends StatelessWidget {
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: CustomPaint(
-                          painter: _RebuiltAlliancePainter(
-                            pathMode: pathMode,
-                            selected: value,
-                            dark: dark,
+                        child: Image.asset(
+                          'assets/images/FE-2026-_REBUILT_Playing_Field_With_Fuel_With_Background.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              CustomPaint(
+                                painter: _RebuiltAlliancePainter(
+                                  pathMode: pathMode,
+                                  selected: value,
+                                  dark: dark,
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment.topCenter,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  color: Colors.black54,
+                                  child: Text(
+                                    LocaleService.instance.text(
+                                      'Field photo missing; showing schematic.',
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -88,13 +115,13 @@ class FieldDiagramPicker extends StatelessWidget {
   Widget _zoneButton(String option, Size size) {
     final selected = value == option;
     final position = switch (option) {
-      'Left trench' => const [0.12, 0.17, 0.34, 0.2],
-      'Left bumper' => const [0.12, 0.63, 0.34, 0.2],
-      'Hub' => const [0.4, 0.38, 0.2, 0.24],
-      'Right bumper' => const [0.54, 0.63, 0.34, 0.2],
-      'Right trench' => const [0.54, 0.17, 0.34, 0.2],
-      'None' => const [0.42, 0.03, 0.16, 0.16],
-      _ => const [0.42, 0.42, 0.16, 0.16],
+      'Left trench' => const [0.02, 0.08, 0.46, 0.13],
+      'Left bump' => const [0.02, 0.78, 0.46, 0.13],
+      'Hub' => const [0.02, 0.43, 0.46, 0.13],
+      'Right bump' => const [0.52, 0.78, 0.46, 0.13],
+      'Right trench' => const [0.52, 0.08, 0.46, 0.13],
+      'None' => const [0.52, 0.43, 0.46, 0.13],
+      _ => const [0.27, 0.44, 0.46, 0.13],
     };
     return Positioned(
       left: size.width * position[0],
@@ -189,17 +216,21 @@ class _RebuiltAlliancePainter extends CustomPainter {
     );
 
     if (pathMode && selected.isNotEmpty && selected != 'None') {
-      final endX =
-          selected.startsWith('Left') ? size.width * 0.12 : size.width * 0.88;
-      final endY =
-          selected.endsWith('trench') ? size.height * 0.18 : size.height * 0.82;
+      final end = switch (selected) {
+        'Left trench' => Offset(size.width * 0.12, size.height * 0.18),
+        'Left bump' => Offset(size.width * 0.12, size.height * 0.82),
+        'Hub' => Offset(size.width * 0.5, size.height * 0.5),
+        'Right bump' => Offset(size.width * 0.88, size.height * 0.82),
+        'Right trench' => Offset(size.width * 0.88, size.height * 0.18),
+        _ => Offset(size.width * 0.5, size.height * 0.5),
+      };
       final pathPaint = Paint()
         ..color = const Color(0xFFFFD166)
         ..strokeWidth = 4
         ..strokeCap = StrokeCap.round;
       canvas.drawLine(
         Offset(size.width / 2, size.height * 0.82),
-        Offset(endX, endY),
+        end,
         pathPaint,
       );
     }

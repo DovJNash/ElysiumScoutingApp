@@ -87,6 +87,7 @@ create table if not exists public."Scouting" (
   "teleopShoot" integer not null,
   "teleopIntake" integer not null,
   "robotShowed" boolean not null default true,
+  "fuelCountsAreRanges" boolean not null default false,
   "autoCycles" integer not null default 0,
   "autoFuelsDelivered" integer not null default 0,
   "autoIntakeSpeed" integer not null default 0,
@@ -117,6 +118,7 @@ alter table public."Scouting"
   add column if not exists "matchSet" integer not null default 1;
 alter table public."Scouting"
   add column if not exists "robotShowed" boolean not null default true,
+  add column if not exists "fuelCountsAreRanges" boolean not null default false,
   add column if not exists "autoCycles" integer not null default 0,
   add column if not exists "autoFuelsDelivered" integer not null default 0,
   add column if not exists "autoIntakeSpeed" integer not null default 0,

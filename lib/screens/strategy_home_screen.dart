@@ -374,6 +374,7 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
       );
     }
     final team = _pitTeam!;
+    final theme = Theme.of(context);
     final fields = [
       (
         'autonomous',
@@ -405,9 +406,9 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
       children: [
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: const BoxDecoration(
-            color: Elysium.surface,
-            border: Border(bottom: BorderSide(color: Elysium.border)),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(bottom: BorderSide(color: theme.dividerColor)),
           ),
           child: Row(
             children: [
@@ -509,13 +510,14 @@ class _StrategyHomeScreenState extends State<StrategyHomeScreen>
     }
 
     final team = _team!;
+    final theme = Theme.of(context);
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: const BoxDecoration(
-            color: Elysium.surface,
-            border: Border(bottom: BorderSide(color: Elysium.border)),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(bottom: BorderSide(color: theme.dividerColor)),
           ),
           child: Row(
             children: [
