@@ -82,7 +82,9 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
     setState(() {
       _events = events;
       _selectedEvent = events.isEmpty ? null : events.first;
-      _error = loadError;
+      _error = loadError != null && events.isNotEmpty
+          ? 'TBA is unavailable; showing cached events.'
+          : loadError;
       _loadingEvents = false;
     });
     if (_selectedEvent != null) {
@@ -150,7 +152,9 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
           _teams
             ..clear()
             ..addAll(cachedTeams);
-          _error = error;
+          _error = cachedMatches.isNotEmpty || cachedTeams.isNotEmpty
+              ? 'TBA is unavailable; showing any locally cached schedule data.'
+              : error;
         });
       }
     } finally {

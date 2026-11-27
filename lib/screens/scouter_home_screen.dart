@@ -353,9 +353,15 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
         appBar: AppBar(
           title: ElysiumAppBarTitle('Scouter • ${user.name}'),
           actions: [
-            const LocaleSwitchButton(),
+            const SyncStatusBadge(),
             IconButton(
-              tooltip: 'Profile',
+              tooltip: 'Submitted forms',
+              onPressed: () =>
+                  showMySubmissionsSheet(context, superMode: false),
+              icon: const Icon(Icons.history_rounded),
+            ),
+            IconButton(
+              tooltip: 'Account',
               onPressed: () => Navigator.of(context)
                   .push(MaterialPageRoute(builder: (_) => const ProfilePage())),
               icon: const Icon(Icons.account_circle_rounded),
@@ -371,23 +377,6 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
                 ),
               ),
               icon: const Icon(Icons.calendar_month_rounded),
-            ),
-            const SyncStatusBadge(),
-            IconButton(
-              tooltip: 'My Submissions',
-              onPressed: () =>
-                  showMySubmissionsSheet(context, superMode: false),
-              icon: const Icon(Icons.history_rounded),
-            ),
-            IconButton(
-              tooltip: 'Log Out',
-              onPressed: () {
-                // This screen can be opened on top of the Strategy screen;
-                // go back to the root first so the login screen is shown.
-                Navigator.of(context).popUntil((route) => route.isFirst);
-                AuthService.instance.logout();
-              },
-              icon: const Icon(Icons.logout_rounded),
             ),
           ],
         ),

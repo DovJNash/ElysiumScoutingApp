@@ -24,7 +24,6 @@ import '../services/pit_scouting_service.dart';
 import '../widgets/team_picker.dart';
 import '../widgets/create_competition_page.dart';
 import '../widgets/super_scouting_page.dart';
-import 'scouter_home_screen.dart';
 
 import 'package:uuid/uuid.dart';
 
@@ -160,14 +159,7 @@ class _LeaderHomeScreenState extends State<LeaderHomeScreen> {
                 appBar: AppBar(
                   title: ElysiumAppBarTitle('Lead • ${leader.name}'),
                   actions: [
-                    const LocaleSwitchButton(),
-                    IconButton(
-                      tooltip: 'Profile',
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ProfilePage()),
-                      ),
-                      icon: const Icon(Icons.account_circle_rounded),
-                    ),
+                    const SyncStatusBadge(),
                     IconButton(
                       tooltip: 'Leader tools',
                       onPressed: () => Navigator.of(context).push(
@@ -178,16 +170,6 @@ class _LeaderHomeScreenState extends State<LeaderHomeScreen> {
                       icon: const Icon(Icons.admin_panel_settings_rounded),
                     ),
                     IconButton(
-                      tooltip: LocaleService.instance.text('Match Scouting'),
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ScouterHomeScreen(),
-                        ),
-                      ),
-                      icon: const Icon(Icons.assignment_rounded),
-                    ),
-                    const SyncStatusBadge(),
-                    IconButton(
                       tooltip: LocaleService.instance.text(
                         'Create competition',
                       ),
@@ -195,9 +177,25 @@ class _LeaderHomeScreenState extends State<LeaderHomeScreen> {
                       icon: const Icon(Icons.add_business_rounded),
                     ),
                     IconButton(
-                      tooltip: 'Log Out',
-                      onPressed: () => AuthService.instance.logout(),
-                      icon: const Icon(Icons.logout_rounded),
+                      tooltip: 'Account',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ProfilePage()),
+                      ),
+                      icon: const Icon(Icons.account_circle_rounded),
+                    ),
+                    IconButton(
+                      tooltip: 'Match schedule',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => Scaffold(
+                            appBar: AppBar(
+                              title: const Text('Match Schedule'),
+                            ),
+                            body: const MatchSchedulePage(),
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.calendar_month_rounded),
                     ),
                   ],
                   bottom: const TabBar(
@@ -344,6 +342,7 @@ class _RankingsTab extends StatelessWidget {
       listenable: DataRepository.instance,
       builder: (context, _) {
         final repo = DataRepository.instance;
+        final dark = Theme.of(context).brightness == Brightness.dark;
         final board = AnalyticsService.computeScoutLeaderboard(
           competitionId: competition.id,
           scoutingEntries: repo.scouting,
@@ -379,18 +378,34 @@ class _RankingsTab extends StatelessWidget {
                   : '${s.accuracyPercent!.toStringAsFixed(1)}%';
               return ElysiumCard(
                 margin: const EdgeInsets.only(bottom: 10),
-                color: top ? Elysium.primary.fade(0.08) : Elysium.surface,
-                borderColor: top ? Elysium.primary : Elysium.border,
+                color: top
+                    ? Elysium.primary.fade(0.08)
+                    : dark
+                        ? const Color(0xFF14243B)
+                        : Elysium.surface,
+                borderColor: top
+                    ? Elysium.primary
+                    : dark
+                        ? const Color(0xFF354B68)
+                        : Elysium.border,
                 padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: top ? Elysium.primary : Elysium.surface2,
+                      backgroundColor: top
+                          ? Elysium.primary
+                          : dark
+                              ? const Color(0xFF243A56)
+                              : Elysium.surface2,
                       child: Text(
                         '${i + 1}',
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
-                          color: top ? Colors.white : Elysium.navy,
+                          color: top
+                              ? Colors.white
+                              : dark
+                                  ? const Color(0xFFE7EFFB)
+                                  : Elysium.navy,
                         ),
                       ),
                     ),
@@ -591,6 +606,7 @@ class _OverallRankingsTabState extends State<_OverallRankingsTab> {
       listenable: DataRepository.instance,
       builder: (context, _) {
         final repo = DataRepository.instance;
+        final dark = Theme.of(context).brightness == Brightness.dark;
         final totals = <int, List<TeamStandingSummary>>{};
         for (final competition in _competitions) {
           final standings = AnalyticsService.computeTeamStandings(
@@ -643,9 +659,16 @@ class _OverallRankingsTabState extends State<_OverallRankingsTab> {
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor:
-                        index == 0 ? Elysium.primary : Elysium.surface2,
-                    foregroundColor: index == 0 ? Colors.white : Elysium.navy,
+                    backgroundColor: index == 0
+                        ? Elysium.primary
+                        : dark
+                            ? const Color(0xFF243A56)
+                            : Elysium.surface2,
+                    foregroundColor: index == 0
+                        ? Colors.white
+                        : dark
+                            ? const Color(0xFFE7EFFB)
+                            : Elysium.navy,
                     child: Text(
                       '${index + 1}',
                       style: const TextStyle(fontWeight: FontWeight.w900),
