@@ -3,11 +3,14 @@ import 'package:flutter/material.dart' hide Text;
 import '../models/team_model.dart';
 import '../services/locale_service.dart';
 import '../services/tba_service.dart';
+import '../services/match_assignment_service.dart';
 import '../theme/elysium_theme.dart';
 import 'localized_text.dart';
 
 class MatchSchedulePage extends StatefulWidget {
-  const MatchSchedulePage({super.key});
+  final bool filterToMyAssignments;
+
+  const MatchSchedulePage({super.key, this.filterToMyAssignments = false});
 
   @override
   State<MatchSchedulePage> createState() => _MatchSchedulePageState();
@@ -18,6 +21,8 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
   TbaEvent? _selectedEvent;
   final List<TbaMatch> _matches = [];
   final List<TbaTeam> _teams = [];
+  List<MatchAssignment> _assignments = [];
+  int _year = 2027;
   bool _loadingEvents = true;
   bool _loading = false;
   Object? _error;
@@ -37,21 +42,39 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
     List<TbaEvent> events = [];
     Object? loadError;
     try {
-      events =
-          await TbaService.instance.israeliDistrictEvents(year: 2027);
+      if (widget.filterToMyAssignments) {
+        _assignments = await MatchAssignmentService.instance.loadMine(
+          refresh: true,
+        );
+      }
+      events = await TbaService.instance.israeliEvents(year: _year);
     } catch (error) {
       loadError = error;
+      events = await TbaService.instance.cachedIsraeliEvents(year: _year);
+    }
+    if (widget.filterToMyAssignments) {
+      final assignedIds =
+          _assignments.map((assignment) => assignment.competitionId).toSet();
       events =
-          await TbaService.instance.cachedIsraeliDistrictEvents(year: 2027);
+          events.where((event) => assignedIds.contains(event.key)).toList();
     }
     if (events.isEmpty) {
-      final competitions = await CompetitionRepository.loadCompetitions();
+      final competitions = await CompetitionRepository.loadCompetitions(
+        year: _year,
+      );
       events = competitions
-          .map((competition) => TbaEvent(
-                key: competition.id,
-                name: competition.name,
-              ))
-          .where((event) => event.key.startsWith('2027'))
+          .map(
+            (competition) =>
+                TbaEvent(key: competition.id, name: competition.name),
+          )
+          .where((event) => event.key.startsWith('$_year'))
+          .where(
+            (event) =>
+                !widget.filterToMyAssignments ||
+                _assignments.any(
+                  (assignment) => assignment.competitionId == event.key,
+                ),
+          )
           .toList();
     }
 
@@ -80,8 +103,22 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
         TbaService.instance.matchesAtEvent(event.key),
         TbaService.instance.teamsAtEvent(event.key),
       ]);
-      final matches = results[0] as List<TbaMatch>;
+      var matches = results[0] as List<TbaMatch>;
       final teams = results[1] as List<TbaTeam>;
+      if (widget.filterToMyAssignments) {
+        matches = matches
+            .where(
+              (match) => _assignments.any(
+                (assignment) => assignment.matches(
+                  competitionId: event.key,
+                  matchLevel: match.matchLevel,
+                  setNumber: match.setNumber,
+                  matchNumber: match.matchNumber,
+                ),
+              ),
+            )
+            .toList();
+      }
       if (mounted) {
         setState(() {
           _matches.addAll(matches);
@@ -89,8 +126,21 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
         });
       }
     } catch (error) {
-      final cachedMatches =
-          await TbaService.instance.cachedMatches(event.key);
+      var cachedMatches = await TbaService.instance.cachedMatches(event.key);
+      if (widget.filterToMyAssignments) {
+        cachedMatches = cachedMatches
+            .where(
+              (match) => _assignments.any(
+                (a) => a.matches(
+                  competitionId: event.key,
+                  matchLevel: match.matchLevel,
+                  setNumber: match.setNumber,
+                  matchNumber: match.matchNumber,
+                ),
+              ),
+            )
+            .toList();
+      }
       final cachedTeams = await TbaService.instance.cachedTeams(event.key);
       if (mounted) {
         setState(() {
@@ -119,6 +169,23 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
+              DropdownButton<int>(
+                value: _year,
+                items: const [2026, 2027]
+                    .map(
+                      (year) =>
+                          DropdownMenuItem(value: year, child: Text('$year')),
+                    )
+                    .toList(),
+                onChanged: _loadingEvents || _loading
+                    ? null
+                    : (year) {
+                        if (year == null) return;
+                        setState(() => _year = year);
+                        _loadEvents();
+                      },
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: DropdownButtonFormField<TbaEvent>(
                   value: _selectedEvent,
@@ -126,12 +193,14 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
                   decoration: InputDecoration(
                     labelText: LocaleService.instance.text('Competition'),
                   ),
-                  hint: const Text('Choose a 2027 Israel competition'),
+                  hint: const Text('Choose an Israel event'),
                   items: _events
-                      .map((event) => DropdownMenuItem(
-                            value: event,
-                            child: Text(event.label),
-                          ))
+                      .map(
+                        (event) => DropdownMenuItem(
+                          value: event,
+                          child: Text(event.label),
+                        ),
+                      )
                       .toList(),
                   onChanged: _loadingEvents || _loading
                       ? null
@@ -164,7 +233,9 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
                 ? Center(
                     child: Text(
                       _events.isEmpty
-                          ? 'No 2027 Israel competitions found.'
+                          ? widget.filterToMyAssignments
+                              ? 'No assigned events for this year.'
+                              : 'No Israel events found for this year.'
                           : _teams.isEmpty
                               ? 'No schedule loaded'
                               : '${_teams.length} teams loaded',
@@ -182,9 +253,10 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
                       return ElysiumCard(
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
-                          title: Text(title,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w800)),
+                          title: Text(
+                            title,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
                           subtitle: Text(
                             'Red: ${_alliance(match.redTeams)}  •  '
                             'Blue: ${_alliance(match.blueTeams)}',
@@ -194,7 +266,8 @@ class _MatchSchedulePageState extends State<MatchSchedulePage> {
                               : Text(
                                   '${match.redScore}-${match.blueScore}',
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.w900),
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
                         ),
                       );

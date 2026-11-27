@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const allowedPath =
-  /^\/district\/2027isr\/(?:teams|events)\/simple$|^\/event\/2027[a-z0-9]+\/(?:teams|matches)\/simple$|^\/team\/frc[1-9]\d*\/simple$/;
+  /^\/district\/(?:2026|2027)isr\/(?:teams|events)\/simple$|^\/events\/(?:2026|2027)\/simple$|^\/event\/(?:2026|2027)[a-z0-9]+\/(?:teams|matches)\/simple$|^\/team\/frc[1-9]\d*\/simple$/;
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

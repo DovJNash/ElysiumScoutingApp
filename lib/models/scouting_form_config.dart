@@ -2,28 +2,71 @@
 /// changes - no screen code needs to be touched.
 class ScoutingFormConfig {
   static const List<String> startPositions = [
-    'Left',
-    'Center',
-    'Right',
-    'No Show',
+    'Left trench',
+    'Left bumper',
+    'Hub',
+    'Right bumper',
+    'Right trench',
   ];
 
   static const List<String> exitPaths = [
-    'Left Lane',
-    'Center Lane',
-    'Right Lane',
-    'Did Not Exit',
+    'Left trench',
+    'Left bumper',
+    'Right bumper',
+    'Right trench',
+    'None',
   ];
 
   static const List<String> stepTitles = [
     '1. Match Setup',
-    '2. Autonomous',
-    '3. Teleop & Zones',
-    '4. Ratings & Notes',
+    '2. Robot Attendance',
+    '3. Autonomous',
+    '4. Teleop',
+    '5. Defense & Climb',
   ];
 
   static const int minRating = 1;
   static const int maxRating = 10;
+
+  static const List<String> speedDescriptions = [
+    'Extremely slow',
+    'Very slow',
+    'Slow',
+    'Below average',
+    'Average',
+    'Above average',
+    'Fast',
+    'Very fast',
+    'Excellent',
+    'Exceptional',
+  ];
+
+  static const List<String> performanceDescriptions = [
+    'Very poor',
+    'Poor',
+    'Below average',
+    'Average',
+    'Good',
+    'Above average',
+    'Very good',
+    'Excellent',
+    'Outstanding',
+    'Exceptional',
+  ];
+
+  static const List<String> fivePointDescriptions = [
+    'Very poor',
+    'Poor',
+    'Average',
+    'Good',
+    'Excellent',
+  ];
+
+  static String fuelDescription(int count) =>
+      '$count ${count == 1 ? 'fuel' : 'fuels'}';
+
+  static String cycleDescription(int count) =>
+      '$count ${count == 1 ? 'cycle' : 'cycles'} completed';
 }
 
 class SuperScoutingFieldSchema {
@@ -47,6 +90,12 @@ class SuperScoutingFormConfig {
       label: 'Autonomous Operation & Routine',
       hint: 'Paths, game pieces scored, reliability, disruption...',
       maxLines: 3,
+    ),
+    SuperScoutingFieldSchema(
+      key: 'autoExitPath',
+      label: 'Autonomous Exit Path',
+      hint: 'Left trench, left bumper, right bumper, right trench, or none',
+      maxLines: 1,
     ),
     SuperScoutingFieldSchema(
       key: 'bps',
@@ -106,6 +155,16 @@ class SuperScoutingFormConfig {
       key: 'defenceStyle',
       label: 'Defensive Style',
       hint: 'Zone denial, lane blocking, pinning timing, or pure scorer...',
+    ),
+    SuperScoutingFieldSchema(
+      key: 'shootingWhileMoving',
+      label: 'Shooting While Moving',
+      hint: 'Can the robot shoot while driving? Describe accuracy and limits.',
+    ),
+    SuperScoutingFieldSchema(
+      key: 'climbCapability',
+      label: 'Climb Capability',
+      hint: 'Expected climb level, reliability, and time required.',
     ),
   ];
 }

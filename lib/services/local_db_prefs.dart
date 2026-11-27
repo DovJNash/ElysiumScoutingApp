@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../config/supabase_config.dart';
 import 'local_db_service.dart';
 
@@ -63,7 +65,8 @@ class PrefsLocalDb extends LocalDbService {
 
   void _removeByUniqueKey(LocalTable t, String uniqueKey, String exceptId) {
     _rows[t]!.removeWhere(
-        (id, r) => id != exceptId && r['uniqueKey'] == uniqueKey);
+      (id, r) => id != exceptId && r['uniqueKey'] == uniqueKey,
+    );
   }
 
   @override
@@ -75,8 +78,10 @@ class PrefsLocalDb extends LocalDbService {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getRows(LocalTable table,
-      {bool unsyncedOnly = false}) async {
+  Future<List<Map<String, dynamic>>> getRows(
+    LocalTable table, {
+    bool unsyncedOnly = false,
+  }) async {
     return _rows[table]!
         .values
         .where((r) => !unsyncedOnly || (r['isSynced'] ?? 1) == 0)
@@ -99,8 +104,24 @@ class PrefsLocalDb extends LocalDbService {
   }
 
   @override
-  Future<bool> replaceSyncedRows(LocalTable table,
-      List<Map<String, dynamic>> serverRows, int expectedVersion) async {
+  Future<void> removeUserRecords(String userId) async {
+    recordLocalWrite();
+    _rows[LocalTable.scouting]!.removeWhere(
+      (_, row) => row['scouterId'] == userId,
+    );
+    _rows[LocalTable.superScouting]!.removeWhere(
+      (_, row) => row['scouterId'] == userId,
+    );
+    _deletions.removeWhere((_, row) => row['requesterId'] == userId);
+    await _persist();
+  }
+
+  @override
+  Future<bool> replaceSyncedRows(
+    LocalTable table,
+    List<Map<String, dynamic>> serverRows,
+    int expectedVersion,
+  ) async {
     if (writeVersion != expectedVersion) return false;
     final rows = _rows[table]!;
 
@@ -111,7 +132,8 @@ class PrefsLocalDb extends LocalDbService {
     final remoteIds = serverRows.map((r) => r['ID'].toString()).toSet();
 
     rows.removeWhere(
-        (id, r) => (r['isSynced'] ?? 1) == 1 && !remoteIds.contains(id));
+      (id, r) => (r['isSynced'] ?? 1) == 1 && !remoteIds.contains(id),
+    );
 
     for (final r in serverRows) {
       final id = r['ID'].toString();
@@ -125,10 +147,11 @@ class PrefsLocalDb extends LocalDbService {
   }
 
   @override
-  Future<void> putDeletion(
-      {required String recordId,
-      required String tableName,
-      required String requesterId}) async {
+  Future<void> putDeletion({
+    required String recordId,
+    required String tableName,
+    required String requesterId,
+  }) async {
     _deletions[recordId] = {
       'recordId': recordId,
       'tableName': tableName,

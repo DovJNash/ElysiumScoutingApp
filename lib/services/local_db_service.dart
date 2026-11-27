@@ -21,26 +21,34 @@ abstract class LocalDbService {
   // race between uploads and downloads.
   int _version = 0;
   int get writeVersion => _version;
+  void recordLocalWrite() => _version++;
 
   Future<void> initialize();
 
   // ------------------------------------------------ primitives (per backend)
   Future<void> putRow(LocalTable table, Map<String, dynamic> row);
-  Future<List<Map<String, dynamic>>> getRows(LocalTable table,
-      {bool unsyncedOnly = false});
+  Future<List<Map<String, dynamic>>> getRows(
+    LocalTable table, {
+    bool unsyncedOnly = false,
+  });
   Future<void> setSynced(LocalTable table, String id);
   Future<void> removeRow(LocalTable table, String id);
+  Future<void> removeUserRecords(String userId);
 
   /// Makes the "synced" rows an exact copy of [serverRows] without touching
   /// rows that wait for upload or deletion. Returns false (and writes nothing)
   /// when a local write happened after [expectedVersion] was read.
   Future<bool> replaceSyncedRows(
-      LocalTable table, List<Map<String, dynamic>> serverRows, int expectedVersion);
+    LocalTable table,
+    List<Map<String, dynamic>> serverRows,
+    int expectedVersion,
+  );
 
-  Future<void> putDeletion(
-      {required String recordId,
-      required String tableName,
-      required String requesterId});
+  Future<void> putDeletion({
+    required String recordId,
+    required String tableName,
+    required String requesterId,
+  });
   Future<List<Map<String, dynamic>>> getDeletions();
   Future<void> dropDeletion(String recordId);
 
@@ -65,13 +73,18 @@ abstract class LocalDbService {
           .map((r) => SuperScoutingEntry.fromMap(r))
           .toList();
 
-  Future<List<ScoutingEntry>> getUnsyncedScouting() async =>
-      (await getRows(LocalTable.scouting, unsyncedOnly: true))
+  Future<List<ScoutingEntry>> getUnsyncedScouting() async => (await getRows(
+        LocalTable.scouting,
+        unsyncedOnly: true,
+      ))
           .map((r) => ScoutingEntry.fromMap(r))
           .toList();
 
   Future<List<SuperScoutingEntry>> getUnsyncedSuperScouting() async =>
-      (await getRows(LocalTable.superScouting, unsyncedOnly: true))
+      (await getRows(
+        LocalTable.superScouting,
+        unsyncedOnly: true,
+      ))
           .map((r) => SuperScoutingEntry.fromMap(r))
           .toList();
 
@@ -96,24 +109,34 @@ abstract class LocalDbService {
   }
 
   Future<bool> replaceSyncedScouting(
-          List<Map<String, dynamic>> remote, int expectedVersion) =>
+    List<Map<String, dynamic>> remote,
+    int expectedVersion,
+  ) =>
       replaceSyncedRows(
-          LocalTable.scouting,
-          remote
-              .map((r) =>
-                  ScoutingEntry.fromMap(r, overrideSynced: true).toSqliteMap())
-              .toList(),
-          expectedVersion);
+        LocalTable.scouting,
+        remote
+            .map(
+              (r) =>
+                  ScoutingEntry.fromMap(r, overrideSynced: true).toSqliteMap(),
+            )
+            .toList(),
+        expectedVersion,
+      );
 
   Future<bool> replaceSyncedSuperScouting(
-          List<Map<String, dynamic>> remote, int expectedVersion) =>
+    List<Map<String, dynamic>> remote,
+    int expectedVersion,
+  ) =>
       replaceSyncedRows(
-          LocalTable.superScouting,
-          remote
-              .map((r) => SuperScoutingEntry.fromMap(r, overrideSynced: true)
-                  .toSqliteMap())
-              .toList(),
-          expectedVersion);
+        LocalTable.superScouting,
+        remote
+            .map(
+              (r) => SuperScoutingEntry.fromMap(r, overrideSynced: true)
+                  .toSqliteMap(),
+            )
+            .toList(),
+        expectedVersion,
+      );
 
   Future<void> queueDeletion({
     required String recordId,
@@ -122,7 +145,10 @@ abstract class LocalDbService {
   }) {
     _version++;
     return putDeletion(
-        recordId: recordId, tableName: tableName, requesterId: requesterId);
+      recordId: recordId,
+      tableName: tableName,
+      requesterId: requesterId,
+    );
   }
 
   Future<List<Map<String, dynamic>>> getPendingDeletions() => getDeletions();

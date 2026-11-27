@@ -1,7 +1,7 @@
-import 'dart:async';
 import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
+
 import '../models/scouting_entry.dart';
 import '../models/scouting_form_config.dart';
 import '../models/team_model.dart';
@@ -17,6 +17,9 @@ import '../widgets/team_picker.dart';
 import '../services/locale_service.dart';
 import '../widgets/match_schedule_page.dart';
 import '../widgets/localized_text.dart';
+import '../widgets/field_diagram_picker.dart';
+import '../widgets/profile_page.dart';
+import '../services/match_assignment_service.dart';
 
 class ScouterHomeScreen extends StatefulWidget {
   const ScouterHomeScreen({super.key});
@@ -29,6 +32,11 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
   List<CompetitionInfo> _competitions = [];
   CompetitionInfo? _competition;
   TeamInfo? _team;
+  final List<MatchAssignment> _myAssignments = [];
+  MatchAssignment? _selectedAssignment;
+  int _year = 2027;
+  bool _loadingCompetitions = true;
+  String? _assignmentError;
 
   int _step = 0;
   DateTime? _startedAt;
@@ -39,41 +47,88 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
   String _startPos = ScoutingFormConfig.startPositions.first;
   String _exitPos = ScoutingFormConfig.exitPaths.first;
 
-  int _autoShoot = 0;
-  int _autoIntake = 0;
-  int _teleopShoot = 0;
-  int _teleopIntake = 0;
-
-  int _allianceCount = 0;
-  int _neutralCount = 0;
-  int _opponentCount = 0;
-  String? _activeZone; // 'alliance' | 'neutral' | 'opponent'
-  DateTime? _zoneSince; // when the running zone timer was started
-  Timer? _ticker;
-
-  int _doingDefence = 5;
-  int _standDefence = 5;
+  int _autoShoot = 1;
+  int _autoCycles = 0;
+  int _autoFuelsDelivered = 1;
+  int _autoIntakeSpeed = 5;
+  int _autoPerformance = 3;
+  int _teleopShoot = 1;
+  int _teleopCycles = 0;
+  int _teleopFuelsDelivered = 1;
+  int _teleopIntakeSpeed = 5;
+  int _teleopAccuracy = 3;
+  int _teleopPerformance = 5;
+  int _defenseRating = 3;
+  int _defenseResilience = 3;
   int _driverSkill = 5;
+  int _climbTimeSeconds = 0;
+  bool _robotShowed = true;
+  bool _teleopCanShootMoving = false;
+  bool _playedDefense = false;
+  bool _dealtWithDefense = false;
+  bool _climbed = false;
+  String _climbLevel = 'L1';
 
   bool _submitting = false;
 
   @override
   void initState() {
     super.initState();
-    CompetitionRepository.loadCompetitions().then((c) {
-      if (mounted) setState(() => _competitions = c);
-    }).catchError((_) {});
-    // Only repaints the running timer. The seconds themselves are measured
-    // with timestamps, so they stay correct even if the app is throttled.
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _activeZone == null) return;
-      setState(() {});
+    _loadCompetitions();
+  }
+
+  bool get _limitedToAssignments =>
+      AuthService.instance.currentUser?.role != 'Leader';
+
+  Future<void> _loadCompetitions() async {
+    setState(() => _loadingCompetitions = true);
+    List<MatchAssignment> assignments = [];
+    String? assignmentError;
+    if (_limitedToAssignments) {
+      try {
+        assignments = await MatchAssignmentService.instance.loadMine(
+          refresh: true,
+        );
+      } catch (error) {
+        assignmentError = error.toString().replaceFirst('Exception: ', '');
+      }
+    }
+    List<CompetitionInfo> competitions;
+    try {
+      competitions = await CompetitionRepository.loadCompetitions(year: _year);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assignmentError =
+            assignmentError ?? error.toString().replaceFirst('Exception: ', '');
+        _loadingCompetitions = false;
+      });
+      return;
+    }
+    if (_limitedToAssignments) {
+      final assignedIds =
+          assignments.map((assignment) => assignment.competitionId).toSet();
+      competitions =
+          competitions.where((item) => assignedIds.contains(item.id)).toList();
+    }
+    if (!mounted) return;
+    setState(() {
+      _myAssignments
+        ..clear()
+        ..addAll(assignments);
+      _competitions = competitions;
+      _assignmentError = assignmentError;
+      _loadingCompetitions = false;
+      if (_competition != null &&
+          !_competitions.any((item) => item.id == _competition!.id)) {
+        _competition = null;
+        _selectedAssignment = null;
+      }
     });
   }
 
   @override
   void dispose() {
-    _ticker?.cancel();
     _matchController.dispose();
     _notesController.dispose();
     super.dispose();
@@ -86,78 +141,32 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
     _notesController.clear();
     _startPos = ScoutingFormConfig.startPositions.first;
     _exitPos = ScoutingFormConfig.exitPaths.first;
-    _autoShoot = 0;
-    _autoIntake = 0;
-    _teleopShoot = 0;
-    _teleopIntake = 0;
-    _allianceCount = 0;
-    _neutralCount = 0;
-    _opponentCount = 0;
-    _activeZone = null;
-    _zoneSince = null;
-    _doingDefence = 5;
-    _standDefence = 5;
+    _autoShoot = 1;
+    _autoCycles = 0;
+    _autoFuelsDelivered = 1;
+    _autoIntakeSpeed = 5;
+    _autoPerformance = 3;
+    _teleopShoot = 1;
+    _teleopCycles = 0;
+    _teleopFuelsDelivered = 1;
+    _teleopIntakeSpeed = 5;
+    _teleopAccuracy = 3;
+    _teleopPerformance = 5;
+    _defenseRating = 3;
+    _defenseResilience = 3;
     _driverSkill = 5;
-  }
-
-  // ---- zone timers --------------------------------------------------------
-  int _zoneBase(String key) => key == 'alliance'
-      ? _allianceCount
-      : key == 'neutral'
-          ? _neutralCount
-          : _opponentCount;
-
-  void _setZone(String key, int v) {
-    final value = v.clamp(0, 999);
-    if (key == 'alliance') _allianceCount = value;
-    if (key == 'neutral') _neutralCount = value;
-    if (key == 'opponent') _opponentCount = value;
-  }
-
-  int _elapsedZoneSeconds() => _zoneSince == null
-      ? 0
-      : (DateTime.now().difference(_zoneSince!).inMilliseconds / 1000).round();
-
-  /// Seconds to display (saved seconds + the running timer).
-  int _liveZone(String key) =>
-      _zoneBase(key) + (_activeZone == key ? _elapsedZoneSeconds() : 0);
-
-  /// Stops the running timer and adds its seconds to the zone.
-  void _commitZone() {
-    final z = _activeZone;
-    if (z == null) return;
-    _setZone(z, _zoneBase(z) + _elapsedZoneSeconds());
-    _activeZone = null;
-    _zoneSince = null;
-  }
-
-  void _toggleZone(String key) {
-    setState(() {
-      final wasRunning = _activeZone == key;
-      _commitZone();
-      if (!wasRunning) {
-        _activeZone = key;
-        _zoneSince = DateTime.now();
-      }
-    });
-  }
-
-  void _adjustZone(String key, int delta) {
-    setState(() {
-      final wasRunning = _activeZone == key;
-      if (wasRunning) _commitZone();
-      _setZone(key, _zoneBase(key) + delta);
-      if (wasRunning) {
-        _activeZone = key;
-        _zoneSince = DateTime.now();
-      }
-    });
+    _climbTimeSeconds = 0;
+    _robotShowed = true;
+    _teleopCanShootMoving = false;
+    _playedDefense = false;
+    _dealtWithDefense = false;
+    _climbed = false;
+    _climbLevel = 'L1';
   }
 
   /// Android back button / swipe: go up one level instead of closing the app.
   void _goBack() {
     setState(() {
-      _commitZone();
       if (_team != null) {
         if (_step > 0) {
           _step--;
@@ -170,7 +179,20 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
     });
   }
 
-  int? get _matchNum => int.tryParse(_matchController.text.trim());
+  int? get _matchNum => _limitedToAssignments
+      ? _selectedAssignment?.matchNumber
+      : int.tryParse(_matchController.text.trim());
+  String get _matchLevel =>
+      _limitedToAssignments ? _selectedAssignment?.matchLevel ?? 'qm' : 'qm';
+  int get _matchSet =>
+      _limitedToAssignments ? _selectedAssignment?.setNumber ?? 1 : 1;
+
+  MatchAssignment? _firstAssignedMatch(String competitionId) {
+    for (final assignment in _myAssignments) {
+      if (assignment.competitionId == competitionId) return assignment;
+    }
+    return null;
+  }
 
   void _next() {
     if (_step == 0 && (_matchNum == null || _matchNum! <= 0)) {
@@ -179,11 +201,21 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
       );
       return;
     }
+    if (_step == 0 &&
+        _limitedToAssignments &&
+        (_selectedAssignment == null ||
+            _selectedAssignment!.competitionId != _competition?.id)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Choose a match assigned to you.')),
+      );
+      return;
+    }
+    if (_step == 1 && !_robotShowed) {
+      _submit();
+      return;
+    }
     if (_step < ScoutingFormConfig.stepTitles.length - 1) {
-      setState(() {
-        _commitZone(); // a running zone timer never leaks into the next step
-        _step++;
-      });
+      setState(() => _step++);
     } else {
       _submit();
     }
@@ -199,17 +231,19 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
     final user = AuthService.instance.currentUser!;
     final comp = _competition!;
     final team = _team!;
-    _commitZone();
 
     final uniqueKey = ScoutingEntry.buildUniqueKey(
       competition: comp.id,
       teamNum: team.number,
       matchNum: matchNum,
+      matchLevel: _matchLevel,
+      matchSet: _matchSet,
       scouterId: user.id,
     );
 
-    final exists =
-        DataRepository.instance.scouting.any((e) => e.uniqueKey == uniqueKey);
+    final exists = DataRepository.instance.scouting.any(
+      (e) => e.uniqueKey == uniqueKey,
+    );
     if (exists) {
       final overwrite = await confirmDialog(
         context,
@@ -235,19 +269,42 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
       scouterName: user.name,
       teamNum: team.number,
       matchNum: matchNum,
-      startPos: _startPos,
-      exitPos: _exitPos,
-      autoShoot: _autoShoot,
-      autoIntake: _autoIntake,
-      allianceCount: _allianceCount,
-      neutralCount: _neutralCount,
-      opponentCount: _opponentCount,
-      teleopShoot: _teleopShoot,
-      teleopIntake: _teleopIntake,
-      doingDefence: _doingDefence,
-      standDefence: _standDefence,
-      driverSkill: _driverSkill,
-      notes: _notesController.text.trim(),
+      matchLevel: _matchLevel,
+      matchSet: _matchSet,
+      startPos: _robotShowed ? _startPos : '',
+      exitPos: _robotShowed ? _exitPos : '',
+      autoShoot: _robotShowed ? _autoShoot : 0,
+      autoIntake: _robotShowed ? _autoFuelsDelivered : 0,
+      allianceCount: 0,
+      neutralCount: 0,
+      opponentCount: 0,
+      teleopShoot: _robotShowed ? _teleopShoot : 0,
+      teleopIntake: _robotShowed ? _teleopFuelsDelivered : 0,
+      robotShowed: _robotShowed,
+      autoCycles: _robotShowed ? _autoCycles : 0,
+      autoFuelsDelivered: _robotShowed ? _autoFuelsDelivered : 0,
+      autoIntakeSpeed: _robotShowed ? _autoIntakeSpeed : 0,
+      autoPerformance: _robotShowed ? _autoPerformance : 0,
+      teleopCanShootMoving: _robotShowed && _teleopCanShootMoving,
+      teleopCycles: _robotShowed ? _teleopCycles : 0,
+      teleopFuelsDelivered: _robotShowed ? _teleopFuelsDelivered : 0,
+      teleopIntakeSpeed: _robotShowed ? _teleopIntakeSpeed : 0,
+      teleopAccuracy: _robotShowed ? _teleopAccuracy : 0,
+      teleopPerformance: _robotShowed ? _teleopPerformance : 0,
+      playedDefense: _robotShowed && _playedDefense,
+      defenseRating: _robotShowed && _playedDefense ? _defenseRating : 0,
+      dealtWithDefense: _robotShowed && _dealtWithDefense,
+      defenseResilience:
+          _robotShowed && _dealtWithDefense ? _defenseResilience : 0,
+      climbed: _robotShowed && _climbed,
+      climbLevel: _robotShowed && _climbed ? _climbLevel : '',
+      climbTimeSeconds: _robotShowed && _climbed ? _climbTimeSeconds : 0,
+      doingDefence: _robotShowed && _playedDefense ? _defenseRating : 0,
+      standDefence: _robotShowed && _dealtWithDefense ? _defenseResilience : 0,
+      driverSkill: _robotShowed ? _driverSkill : 0,
+      notes: _robotShowed
+          ? _notesController.text.trim()
+          : 'Robot did not show up.',
       durationSeconds: duration,
       createdAt: DateTime.now().toUtc().toIso8601String(),
       isSynced: false,
@@ -256,20 +313,30 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
     bool synced = false;
     try {
       synced = await SyncService.instance.submitScouting(entry);
-    } catch (_) {
-      synced = false;
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save scouting form: $error')),
+      );
+      return;
     }
 
     if (!mounted) return;
     setState(() {
       _submitting = false;
       _team = null;
+      _robotShowed = true;
     });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(synced
-          ? 'Match $matchNum • Team ${team.number} submitted & synced!'
-          : 'Saved on this device. It will upload automatically when internet returns.'),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          synced
+              ? 'Match $matchNum • Team ${team.number} submitted & synced!'
+              : 'Saved on this device. It will upload automatically when internet returns.',
+        ),
+      ),
+    );
   }
 
   @override
@@ -288,12 +355,18 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
           actions: [
             const LocaleSwitchButton(),
             IconButton(
+              tooltip: 'Profile',
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const ProfilePage())),
+              icon: const Icon(Icons.account_circle_rounded),
+            ),
+            IconButton(
               tooltip: 'Match Schedule',
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => Scaffold(
                     appBar: AppBar(title: const Text('Match Schedule')),
-                    body: const MatchSchedulePage(),
+                    body: const MatchSchedulePage(filterToMyAssignments: true),
                   ),
                 ),
               ),
@@ -302,7 +375,8 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
             const SyncStatusBadge(),
             IconButton(
               tooltip: 'My Submissions',
-              onPressed: () => showMySubmissionsSheet(context, superMode: false),
+              onPressed: () =>
+                  showMySubmissionsSheet(context, superMode: false),
               icon: const Icon(Icons.history_rounded),
             ),
             IconButton(
@@ -335,26 +409,82 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
   }
 
   Widget _competitionMenu() {
-    if (_competitions.isEmpty) return const Center(child: CircularProgressIndicator());
+    if (_loadingCompetitions) {
+      return const Center(child: CircularProgressIndicator());
+    }
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const SectionTitle('Select Competition'),
+        Row(
+          children: [
+            const Expanded(child: SectionTitle('Select Competition')),
+            DropdownButton<int>(
+              value: _year,
+              items: const [2026, 2027]
+                  .map(
+                    (year) =>
+                        DropdownMenuItem(value: year, child: Text('$year')),
+                  )
+                  .toList(),
+              onChanged: (year) {
+                if (year == null) return;
+                setState(() {
+                  _year = year;
+                  _competition = null;
+                });
+                _loadCompetitions();
+              },
+            ),
+          ],
+        ),
         const SizedBox(height: 14),
+        if (_assignmentError != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              _assignmentError!,
+              style: const TextStyle(color: Elysium.warning),
+            ),
+          ),
+        if (_competitions.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Text(
+              _limitedToAssignments
+                  ? 'No matches have been assigned to you.'
+                  : 'No competitions found.',
+              textAlign: TextAlign.center,
+            ),
+          ),
         ..._competitions.map(
           (comp) => ElysiumCard(
             margin: const EdgeInsets.only(bottom: 12),
             child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 8,
+              ),
               leading: CircleAvatar(
                 backgroundColor: Elysium.primary.fade(0.2),
-                child: const Icon(Icons.emoji_events_rounded, color: Elysium.primary),
+                child: const Icon(
+                  Icons.emoji_events_rounded,
+                  color: Elysium.primary,
+                ),
               ),
-              title: Text(comp.name,
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              title: Text(
+                comp.name,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               subtitle: Text('${comp.teams.length} registered teams'),
               trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => setState(() => _competition = comp),
+              onTap: () => setState(() {
+                _competition = comp;
+                _selectedAssignment =
+                    _limitedToAssignments ? _firstAssignedMatch(comp.id) : null;
+              }),
             ),
           ),
         ),
@@ -375,18 +505,29 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
           ),
           child: Column(
             children: [
-              Row(children: [
-                TeamLogo(team: team, size: 36),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text('Team ${team.number} (${team.name})',
+              Row(
+                children: [
+                  TeamLogo(team: team, size: 36),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Team ${team.number} (${team.name})',
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                ),
-                Text(ScoutingFormConfig.stepTitles[_step],
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    ScoutingFormConfig.stepTitles[_step],
                     style: const TextStyle(
-                        color: Elysium.primary, fontWeight: FontWeight.w800)),
-              ]),
+                      color: Elysium.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 10),
               LinearProgressIndicator(
                 value: (_step + 1) / ScoutingFormConfig.stepTitles.length,
@@ -410,57 +551,82 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
           ),
           child: SafeArea(
             top: false,
-            child: Row(children: [
-              Expanded(
-                child: SizedBox(
-                  height: 50,
-                  child: OutlinedButton.icon(
-                    onPressed: _goBack,
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    label: Text(_step > 0 ? 'Back' : 'Change Team'),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed: _goBack,
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      label: Text(_step > 0 ? 'Back' : 'Change Team'),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: SizedBox(
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: _submitting ? null : _next,
-                    icon: Icon(last ? Icons.cloud_upload_rounded : Icons.arrow_forward_rounded),
-                    label: Text(last ? (_submitting ? 'Submitting...' : 'Submit') : 'Next',
-                        style: const TextStyle(fontSize: 16)),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: _submitting ? null : _next,
+                      icon: Icon(
+                        last
+                            ? Icons.cloud_upload_rounded
+                            : Icons.arrow_forward_rounded,
+                      ),
+                      label: Text(
+                        last
+                            ? (_submitting ? 'Submitting...' : 'Submit')
+                            : 'Next',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _chipGroup(List<String> options, String selected, ValueChanged<String> onPick) {
+  Widget _chipGroup(
+    List<String> options,
+    String selected,
+    ValueChanged<String> onPick,
+  ) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: options
-          .map((o) => ChoiceChip(
-                label: Text(o),
-                selected: selected == o,
-                selectedColor: Elysium.primary,
-                backgroundColor: Elysium.surface,
-                showCheckmark: false,
-                side: BorderSide(color: selected == o ? Elysium.primary : Elysium.border),
-                labelStyle: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: selected == o ? Colors.white : Elysium.navy),
-                onSelected: (_) => onPick(o),
-              ))
+          .map(
+            (o) => ChoiceChip(
+              label: Text(o),
+              selected: selected == o,
+              selectedColor: Elysium.primary,
+              backgroundColor: Elysium.surface,
+              showCheckmark: false,
+              side: BorderSide(
+                color: selected == o ? Elysium.primary : Elysium.border,
+              ),
+              labelStyle: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: selected == o ? Colors.white : Elysium.navy,
+              ),
+              onSelected: (_) => onPick(o),
+            ),
+          )
           .toList(),
     );
   }
+
+  String _matchLabel(MatchAssignment assignment) =>
+      assignment.matchLevel == 'qm'
+          ? 'Qualification ${assignment.matchNumber}'
+          : '${assignment.matchLevel.toUpperCase()} '
+              '${assignment.setNumber}-${assignment.matchNumber}';
 
   Widget _stepBody() {
     switch (_step) {
@@ -468,112 +634,276 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _matchController,
-              keyboardType: TextInputType.number,
-              textInputAction: TextInputAction.done,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: InputDecoration(
-                labelText: LocaleService.instance.text('Match Number'),
-                hintText: LocaleService.instance.text('e.g., 14'),
-                prefixIcon: Icon(Icons.tag_rounded),
+            if (_limitedToAssignments)
+              DropdownButtonFormField<MatchAssignment>(
+                initialValue: _myAssignments
+                        .where(
+                          (assignment) =>
+                              assignment.competitionId == _competition!.id,
+                        )
+                        .contains(_selectedAssignment)
+                    ? _selectedAssignment
+                    : null,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Assigned match'),
+                items: _myAssignments
+                    .where(
+                      (assignment) =>
+                          assignment.competitionId == _competition!.id,
+                    )
+                    .map(
+                      (assignment) => DropdownMenuItem(
+                        value: assignment,
+                        child: Text(_matchLabel(assignment)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (assignment) =>
+                    setState(() => _selectedAssignment = assignment),
+              )
+            else
+              TextField(
+                controller: _matchController,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  labelText: LocaleService.instance.text('Match Number'),
+                  hintText: LocaleService.instance.text('e.g., 14'),
+                  prefixIcon: const Icon(Icons.tag_rounded),
+                ),
               ),
-            ),
-            const SizedBox(height: 22),
-            const Text('Starting Position',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 10),
-            _chipGroup(ScoutingFormConfig.startPositions, _startPos,
-                (v) => setState(() => _startPos = v)),
           ],
         );
       case 1:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Elysium.primary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text('AUTONOMOUS PERIOD',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                      color: Colors.white)),
-            ),
-            const SizedBox(height: 16),
-            ResponsiveCounterPad(
-              label: 'Auto Game Pieces Scored',
-              value: _autoShoot,
-              accentColor: Elysium.primary,
-              onChanged: (v) => setState(() => _autoShoot = v),
-            ),
+            const SectionTitle('Did the robot show up to the match?'),
             const SizedBox(height: 14),
-            ResponsiveCounterPad(
-              label: 'How Many Fuels Passed to Alliance Zone',
-              value: _autoIntake,
-              accentColor: Elysium.accent,
-              onChanged: (v) => setState(() => _autoIntake = v),
+            _yesNo(
+              'Did the robot show up to the match?',
+              _robotShowed,
+              (value) => setState(() => _robotShowed = value),
             ),
-            const SizedBox(height: 22),
-            const Text('Exit Path',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 10),
-            _chipGroup(ScoutingFormConfig.exitPaths, _exitPos,
-                (v) => setState(() => _exitPos = v)),
+            if (!_robotShowed) ...[
+              const SizedBox(height: 12),
+              const ElysiumCard(
+                padding: EdgeInsets.all(14),
+                child: Text(
+                  'Selecting No will submit this match with empty gameplay values and a note that the robot did not show up.',
+                ),
+              ),
+            ],
           ],
         );
       case 2:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ResponsiveCounterPad(
-              label: 'Teleop Game Pieces Scored',
-              value: _teleopShoot,
-              accentColor: Elysium.primary,
-              onChanged: (v) => setState(() => _teleopShoot = v),
+            FieldDiagramPicker(
+              title: 'Starting Position',
+              value: _startPos,
+              options: ScoutingFormConfig.startPositions,
+              onChanged: (v) => setState(() => _startPos = v),
+            ),
+            const SizedBox(height: 14),
+            _scaleSlider(
+              'How many fuels did the robot shoot?',
+              _autoShoot,
+              10,
+              List.generate(
+                10,
+                (index) => ScoutingFormConfig.fuelDescription(index + 1),
+              ),
+              (v) => setState(() => _autoShoot = v),
             ),
             const SizedBox(height: 14),
             ResponsiveCounterPad(
-              label: 'How Many Fuels Passed to Alliance Zone',
-              value: _teleopIntake,
+              label: 'How many cycles did the robot do?',
+              value: _autoCycles,
               accentColor: Elysium.accent,
-              onChanged: (v) => setState(() => _teleopIntake = v),
+              onChanged: (v) => setState(() => _autoCycles = v),
             ),
-            const SizedBox(height: 22),
-            const SectionTitle('Zone Time (seconds)',
-                subtitle: 'Tap Track to run a timer for the zone the robot is in, or adjust by 5 s.'),
-            const SizedBox(height: 10),
-            _zoneRow('Alliance Zone', 'alliance', Elysium.primary),
-            const SizedBox(height: 10),
-            _zoneRow('Neutral Zone', 'neutral', Elysium.accent),
-            const SizedBox(height: 10),
-            _zoneRow('Opponent Zone', 'opponent', Elysium.danger),
+            const SizedBox(height: 14),
+            _scaleSlider(
+              'How many fuels did the robot deliver?',
+              _autoFuelsDelivered,
+              10,
+              List.generate(
+                10,
+                (index) => ScoutingFormConfig.fuelDescription(index + 1),
+              ),
+              (v) => setState(() => _autoFuelsDelivered = v),
+            ),
+            const SizedBox(height: 14),
+            _scaleSlider(
+              'How fast was the robot intake?',
+              _autoIntakeSpeed,
+              10,
+              ScoutingFormConfig.speedDescriptions,
+              (v) => setState(() => _autoIntakeSpeed = v),
+            ),
+            const SizedBox(height: 14),
+            _scaleSlider(
+              'Overall autonomous performance',
+              _autoPerformance,
+              5,
+              ScoutingFormConfig.fivePointDescriptions,
+              (v) => setState(() => _autoPerformance = v),
+            ),
+            const SizedBox(height: 14),
+            FieldDiagramPicker(
+              title: 'Robot exit path',
+              value: _exitPos,
+              options: ScoutingFormConfig.exitPaths,
+              pathMode: true,
+              onChanged: (v) => setState(() => _exitPos = v),
+            ),
+          ],
+        );
+      case 3:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _yesNo(
+              'Can the robot shoot while moving?',
+              _teleopCanShootMoving,
+              (value) => setState(() => _teleopCanShootMoving = value),
+            ),
+            const SizedBox(height: 14),
+            _scaleSlider(
+              'How many fuels did the robot shoot?',
+              _teleopShoot,
+              10,
+              List.generate(
+                10,
+                (index) => ScoutingFormConfig.fuelDescription(index + 1),
+              ),
+              (v) => setState(() => _teleopShoot = v),
+            ),
+            const SizedBox(height: 14),
+            ResponsiveCounterPad(
+              label: 'How many cycles did the robot do?',
+              value: _teleopCycles,
+              accentColor: Elysium.accent,
+              onChanged: (v) => setState(() => _teleopCycles = v),
+            ),
+            const SizedBox(height: 14),
+            _scaleSlider(
+              'How many fuels did the robot deliver?',
+              _teleopFuelsDelivered,
+              10,
+              List.generate(
+                10,
+                (index) => ScoutingFormConfig.fuelDescription(index + 1),
+              ),
+              (v) => setState(() => _teleopFuelsDelivered = v),
+            ),
+            const SizedBox(height: 14),
+            _scaleSlider(
+              'How fast was the robot intake?',
+              _teleopIntakeSpeed,
+              10,
+              ScoutingFormConfig.speedDescriptions,
+              (v) => setState(() => _teleopIntakeSpeed = v),
+            ),
+            const SizedBox(height: 14),
+            _scaleSlider(
+              'How accurate is the robot shooting?',
+              _teleopAccuracy,
+              5,
+              ScoutingFormConfig.fivePointDescriptions,
+              (v) => setState(() => _teleopAccuracy = v),
+            ),
+            const SizedBox(height: 14),
+            _scaleSlider(
+              'Overall teleop performance',
+              _teleopPerformance,
+              10,
+              ScoutingFormConfig.performanceDescriptions,
+              (v) => setState(() => _teleopPerformance = v),
+            ),
           ],
         );
       default:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _slider('Defense Played By This Robot (1–10)', _doingDefence,
-                (v) => setState(() => _doingDefence = v)),
+            _yesNo(
+              'Did the robot play defense?',
+              _playedDefense,
+              (value) => setState(() => _playedDefense = value),
+            ),
+            if (_playedDefense) ...[
+              const SizedBox(height: 8),
+              _scaleSlider(
+                'How good was the robot in defense?',
+                _defenseRating,
+                5,
+                ScoutingFormConfig.fivePointDescriptions,
+                (v) => setState(() => _defenseRating = v),
+              ),
+            ],
             const SizedBox(height: 14),
-            _slider('Resilience Against Defense (1–10)', _standDefence,
-                (v) => setState(() => _standDefence = v)),
+            _yesNo(
+              'Did the robot deal with defense?',
+              _dealtWithDefense,
+              (value) => setState(() => _dealtWithDefense = value),
+            ),
+            if (_dealtWithDefense) ...[
+              const SizedBox(height: 8),
+              _scaleSlider(
+                'How good was the robot at dealing with defense?',
+                _defenseResilience,
+                5,
+                ScoutingFormConfig.fivePointDescriptions,
+                (v) => setState(() => _defenseResilience = v),
+              ),
+            ],
             const SizedBox(height: 14),
-            _slider('Driver Skill (1–10)', _driverSkill,
-                (v) => setState(() => _driverSkill = v)),
+            _scaleSlider(
+              'How good was the driver?',
+              _driverSkill,
+              10,
+              ScoutingFormConfig.performanceDescriptions,
+              (v) => setState(() => _driverSkill = v),
+            ),
+            const SizedBox(height: 14),
+            _yesNo(
+              'Did the robot climb?',
+              _climbed,
+              (value) => setState(() => _climbed = value),
+            ),
+            if (_climbed) ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Climb level',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              _chipGroup(
+                const ['L1', 'L2', 'L3'],
+                _climbLevel,
+                (value) => setState(() => _climbLevel = value),
+              ),
+              const SizedBox(height: 12),
+              ResponsiveCounterPad(
+                label: 'How many seconds did the robot take to climb?',
+                value: _climbTimeSeconds,
+                accentColor: Elysium.accent,
+                onChanged: (v) => setState(() => _climbTimeSeconds = v),
+              ),
+            ],
             const SizedBox(height: 18),
             TextField(
               controller: _notesController,
               maxLines: 4,
               decoration: InputDecoration(
-                labelText: LocaleService.instance.text('General Notes'),
-                hintText: LocaleService.instance
-                    .text('Mechanical issues, penalties, endgame, cycle notes...'),
+                labelText: LocaleService.instance.text('Notes about the match'),
+                hintText: LocaleService.instance.text(
+                  'Add notes about the robot or match...',
+                ),
                 alignLabelWithHint: true,
               ),
             ),
@@ -582,76 +912,94 @@ class _ScouterHomeScreenState extends State<ScouterHomeScreen> {
     }
   }
 
-  Widget _zoneRow(String label, String key, Color color) {
-    final running = _activeZone == key;
-    final seconds = _liveZone(key);
+  Widget _yesNo(String title, bool value, ValueChanged<bool> onChanged) {
     return ElysiumCard(
-      borderColor: running ? color : Elysium.border,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(children: [
-            Expanded(
-              child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
-            ),
-            Text('${seconds}s',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
-          ]),
-          const SizedBox(height: 8),
-          Row(children: [
-            IconButton(
-              tooltip: '-5 s',
-              onPressed: () => _adjustZone(key, -5),
-              icon: const Icon(Icons.remove_circle_outline),
-            ),
-            IconButton(
-              tooltip: '+5 s',
-              onPressed: () => _adjustZone(key, 5),
-              icon: const Icon(Icons.add_circle_outline),
-            ),
-            const Spacer(),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: running ? color : Elysium.surface2,
-                foregroundColor: running ? Elysium.onColor(color) : Elysium.navy,
-              ),
-              onPressed: () => _toggleZone(key),
-              icon: Icon(running ? Icons.pause_rounded : Icons.play_arrow_rounded),
-              label: Text(running ? 'Running' : 'Track'),
-            ),
-          ]),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              for (final option in [true, false]) ...[
+                Expanded(
+                  child: ChoiceChip(
+                    label: Center(child: Text(option ? 'Yes' : 'No')),
+                    selected: value == option,
+                    onSelected: (_) => onChanged(option),
+                    showCheckmark: false,
+                    selectedColor: Elysium.primary,
+                    labelStyle: TextStyle(
+                      color: value == option ? Colors.white : Elysium.navy,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (option) const SizedBox(width: 10),
+              ],
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _slider(String title, int value, ValueChanged<int> onChanged) {
+  Widget _scaleSlider(
+    String title,
+    int value,
+    int max,
+    List<String> descriptions,
+    ValueChanged<int> onChanged,
+  ) {
+    assert(descriptions.length == max);
+    final description = descriptions[value.clamp(1, max) - 1];
     return ElysiumCard(
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800))),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Elysium.primary.fade(0.18),
-                borderRadius: BorderRadius.circular(8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
               ),
-              child: Text('$value / 10',
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Elysium.primary.fade(0.18),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$value / $max',
                   style: const TextStyle(
-                      fontWeight: FontWeight.w900, color: Elysium.primary)),
-            ),
-          ]),
+                    fontWeight: FontWeight.w900,
+                    color: Elysium.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
           Slider(
-            value: value.toDouble(),
-            min: ScoutingFormConfig.minRating.toDouble(),
-            max: ScoutingFormConfig.maxRating.toDouble(),
-            divisions: 9,
-            label: '$value',
+            value: value.toDouble().clamp(1, max).toDouble(),
+            min: 1,
+            max: max.toDouble(),
+            divisions: max - 1,
+            label: descriptions[value.clamp(1, max) - 1],
             onChanged: (v) => onChanged(v.round()),
+          ),
+          Text(
+            description,
+            style: const TextStyle(
+              color: Elysium.primary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
