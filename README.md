@@ -52,7 +52,7 @@ The app is **offline-first**: it works without an internet connection, and syncs
 
 ### 1.1 The Blue Alliance
 The TBA key belongs on the server, not in the APK. In Supabase Dashboard, open
-**Edge Functions -> Secrets** and add `TBA_API_KEY` with your TBA read key.
+**Edge Functions -> Secrets** and add `tba_api_key` with your TBA read key.
 Then deploy the read-only, allowlisted proxy from the repository root:
 ```
 supabase login
